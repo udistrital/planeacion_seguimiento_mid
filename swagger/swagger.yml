@@ -1,0 +1,42 @@
+swagger: "2.0"
+info:
+  title: beego Test API
+  description: |
+    beego has a very cool tools to autogenerate documents for your API
+  version: 1.0.0
+  termsOfService: http://beego.me/
+  contact:
+    email: astaxie@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+basePath: /v1
+paths:
+  /seguimiento/habilitar_reportes:
+    put:
+      tags:
+      - seguimiento
+      description: |-
+        put Seguimiento
+        <br>
+      operationId: SeguimientoController.HabilitarReportes
+      parameters:
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+        "403":
+          description: ""
+definitions:
+  '{}':
+    title: '{}'
+    type: object
+tags:
+- name: seguimiento
+  description: |
+    SeguimientoController operations for Seguimiento
