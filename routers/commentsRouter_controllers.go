@@ -72,6 +72,15 @@ func init() {
 
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"],
         beego.ControllerComments{
+            Method: "EstadoTrimestres",
+            Router: "/estado_trimestres/:plan_id",
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"],
+        beego.ControllerComments{
             Method: "GuardarCualitativo",
             Router: "/guardar_cualitativo/:plan_id/:index/:trimestre",
             AllowHTTPMethods: []string{"put"},
@@ -164,6 +173,15 @@ func init() {
         beego.ControllerComments{
             Method: "RevisarSeguimiento",
             Router: "/revision_seguimiento/:id",
+            AllowHTTPMethods: []string{"put"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"],
+        beego.ControllerComments{
+            Method: "VerificarSeguimiento",
+            Router: "/verificar_seguimiento/:id",
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
