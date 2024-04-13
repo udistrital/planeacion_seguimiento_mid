@@ -78,7 +78,7 @@ func GuardarDocumentos(requestBody []byte, planIdentificador string, indiceActiv
 				detalle["evidencia"] = evidencias
 				detalle["estado"] = estado
 				delete(detalle, "_id")
-				dato[indiceActividad] = map[string]interface{}{"id": guardarDetalleSeguimiento(detalle, false)}
+				dato[indiceActividad] = map[string]interface{}{"id": helpers.GuardarDetalleSeguimiento(detalle, false)}
 			} else {
 				identificador, segregado := dato[indiceActividad].(map[string]interface{})["id"]
 
@@ -88,7 +88,7 @@ func GuardarDocumentos(requestBody []byte, planIdentificador string, indiceActiv
 						detalle = planeacion.ConvertirStringJson(detalle)
 						detalle["evidencia"] = evidencias
 						detalle["estado"] = estado
-						guardarDetalleSeguimiento(detalle, true)
+						helpers.GuardarDetalleSeguimiento(detalle, true)
 					} else {
 						logs.Error("Error --> ", err)
 						return nil, errors.New(err.Error())
@@ -100,7 +100,7 @@ func GuardarDocumentos(requestBody []byte, planIdentificador string, indiceActiv
 			}
 			valor, _ := json.Marshal(dato)
 			seguimiento["dato"] = string(valor)
-			seguimiento["estado_seguimiento_id"] = consultarEstadoSeguimiento(seguimiento)
+			seguimiento["estado_seguimiento_id"] = helpers.ConsultarEstadoSeguimiento(seguimiento)
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error --> ", err)
@@ -153,7 +153,7 @@ func GuardarCualitativo(requestBody []byte, planIdentificador string, indiceActi
 				}
 
 				detalle = map[string]interface{}{"estado": estado, "cualitativo": cualitativo, "informacion": informacion}
-				dato[indiceActividad] = map[string]interface{}{"id": guardarDetalleSeguimiento(detalle, false)}
+				dato[indiceActividad] = map[string]interface{}{"id": helpers.GuardarDetalleSeguimiento(detalle, false)}
 			} else {
 				identificador, segregado := dato[indiceActividad].(map[string]interface{})["id"]
 
@@ -202,7 +202,7 @@ func GuardarCualitativo(requestBody []byte, planIdentificador string, indiceActi
 					detalle["cualitativo"] = cualitativo
 					detalle["informacion"] = informacion
 					detalle["estado"] = estado
-					guardarDetalleSeguimiento(detalle, true)
+					helpers.GuardarDetalleSeguimiento(detalle, true)
 				} else {
 					dato[indiceActividad].(map[string]interface{})["informacion"] = informacion
 					dato[indiceActividad].(map[string]interface{})["cualitativo"] = cualitativo
@@ -211,7 +211,7 @@ func GuardarCualitativo(requestBody []byte, planIdentificador string, indiceActi
 			}
 			b, _ := json.Marshal(dato)
 			seguimiento["dato"] = string(b)
-			seguimiento["estado_seguimiento_id"] = consultarEstadoSeguimiento(seguimiento)
+			seguimiento["estado_seguimiento_id"] = helpers.ConsultarEstadoSeguimiento(seguimiento)
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error -->", err)
@@ -262,7 +262,7 @@ func GuardarCuantitativo(requestBody []byte, planIdentificador string, indiceAct
 					return nil, errors.New(err.Error())
 				}
 				detalle = map[string]interface{}{"estado": estado, "cuantitativo": cuantitativo, "informacion": informacion}
-				dato[indiceActividad] = map[string]interface{}{"id": guardarDetalleSeguimiento(detalle, false)}
+				dato[indiceActividad] = map[string]interface{}{"id": helpers.GuardarDetalleSeguimiento(detalle, false)}
 			} else {
 				identificador, segregado := dato[indiceActividad].(map[string]interface{})["id"]
 
@@ -305,7 +305,7 @@ func GuardarCuantitativo(requestBody []byte, planIdentificador string, indiceAct
 					detalle["estado"] = estado
 					detalle["cuantitativo"] = cuantitativo
 					detalle["informacion"] = informacion
-					guardarDetalleSeguimiento(detalle, true)
+					helpers.GuardarDetalleSeguimiento(detalle, true)
 				} else {
 					dato[indiceActividad].(map[string]interface{})["informacion"] = informacion
 					dato[indiceActividad].(map[string]interface{})["cuantitativo"] = cuantitativo
@@ -315,7 +315,7 @@ func GuardarCuantitativo(requestBody []byte, planIdentificador string, indiceAct
 
 			b, _ := json.Marshal(dato)
 			seguimiento["dato"] = string(b)
-			seguimiento["estado_seguimiento_id"] = consultarEstadoSeguimiento(seguimiento)
+			seguimiento["estado_seguimiento_id"] = helpers.ConsultarEstadoSeguimiento(seguimiento)
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error -->", err)
@@ -331,4 +331,35 @@ func GuardarCuantitativo(requestBody []byte, planIdentificador string, indiceAct
 		logs.Error("Error -->", err)
 		return nil, errors.New(err.Error())
 	}
+}
+
+func actividadConObservaciones(seguimiento map[string]interface{}) bool {
+	var cuantitativo map[string]interface{}
+	var cualitativo map[string]interface{}
+
+	if seguimiento["cuantitativo"] != nil {
+		cuantitativo = seguimiento["cuantitativo"].(map[string]interface{})
+		for _, indicador := range cuantitativo["indicadores"].([]interface{}) {
+			if indicador.(map[string]interface{})["observaciones"] != "" && indicador.(map[string]interface{})["observaciones"] != "Sin observación" && indicador.(map[string]interface{})["observaciones"] != nil {
+				return true
+			}
+		}
+	}
+
+	if seguimiento["cualitativo"] != nil {
+		cualitativo = seguimiento["cualitativo"].(map[string]interface{})
+		if cualitativo["observaciones"] != "" && cualitativo["observaciones"] != "Sin observación" && cualitativo["observaciones"] != nil {
+			return true
+		}
+	}
+
+	if seguimiento["evidencia"] != nil {
+		for _, evidencia := range seguimiento["evidencia"].([]map[string]interface{}) {
+			if evidencia["Observacion"] != "" && evidencia["Observacion"] != "Sin observación" && evidencia["Observacion"] != nil {
+				return true
+			}
+		}
+	}
+
+	return false
 }

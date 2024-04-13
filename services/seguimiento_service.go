@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
+	"github.com/udistrital/planeacion_seguimiento_mid/helpers"
 	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/planeacion"
 	"github.com/udistrital/utils_oas/request"
@@ -55,7 +55,7 @@ func GuardarSeguimiento(requestBody []byte, planIdentificador string, indiceActi
 			if dato[indiceActividad] == nil {
 				body["estado"] = estado
 				delete(body, "_id")
-				dato[indiceActividad] = map[string]interface{}{"id": guardarDetalleSeguimiento(body, false)}
+				dato[indiceActividad] = map[string]interface{}{"id": helpers.GuardarDetalleSeguimiento(body, false)}
 				valor, _ := json.Marshal(dato)
 				str := string(valor)
 				seguimiento["dato"] = str
@@ -67,7 +67,7 @@ func GuardarSeguimiento(requestBody []byte, planIdentificador string, indiceActi
 						request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 						detalle = planeacion.ConvertirStringJson(detalle)
 						detalle["estado"] = estado
-						guardarDetalleSeguimiento(detalle, true)
+						helpers.GuardarDetalleSeguimiento(detalle, true)
 					}
 				} else {
 					dato[indiceActividad].(map[string]interface{})["estado"] = estado
@@ -76,7 +76,7 @@ func GuardarSeguimiento(requestBody []byte, planIdentificador string, indiceActi
 					seguimiento["dato"] = str
 				}
 			}
-			estadoSeguimiento = consultarEstadoSeguimiento(seguimiento)
+			estadoSeguimiento = helpers.ConsultarEstadoSeguimiento(seguimiento)
 			seguimiento["estado_seguimiento_id"] = estadoSeguimiento
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
@@ -213,7 +213,7 @@ func MigrarInformacion(planIdentificador string, trimestre string) (interface{},
 
 			if !segregado || identificador == "" {
 				delete(dato[indiceActividad].(map[string]interface{}), "_id")
-				dato[indiceActividad] = map[string]interface{}{"id": guardarDetalleSeguimiento(dato[indiceActividad].(map[string]interface{}), false)}
+				dato[indiceActividad] = map[string]interface{}{"id": helpers.GuardarDetalleSeguimiento(dato[indiceActividad].(map[string]interface{}), false)}
 				respuestaMigrado = append(respuestaMigrado, map[string]interface{}{"id": indiceActividad})
 			} else {
 				respuestaNoMigrado = append(respuestaNoMigrado, map[string]interface{}{"id": indiceActividad})
@@ -261,126 +261,6 @@ func VerificarSeguimiento(idSeguimiento string) (interface{}, error) {
 	}
 
 	return seguimiento, nil
-}
-
-func guardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) string {
-	var respuesta map[string]interface{}
-	var identificador string
-	var tipo_peticion string
-	url := "http://" + beego.AppConfig.String("PlanesService") + "/seguimiento-detalle"
-
-	detalle = planeacion.ConvertirJsonString(detalle)
-
-	if _, existe := detalle["informacion"]; !existe {
-		detalle["informacion"] = "{}"
-	}
-	if _, existe := detalle["cualitativo"]; !existe {
-		detalle["cualitativo"] = "{}"
-	}
-	if _, existe := detalle["cuantitativo"]; !existe {
-		detalle["cuantitativo"] = "{}"
-	}
-	if _, existe := detalle["evidencia"]; !existe {
-		detalle["evidencia"] = "[]"
-	}
-
-	if actualizar {
-		tipo_peticion = "PUT"
-		url += "/" + detalle["_id"].(string)
-	} else {
-		tipo_peticion = "POST"
-	}
-	if err := request.SendJson(url, tipo_peticion, &respuesta, detalle); err == nil {
-		aux := make(map[string]interface{})
-		request.LimpiezaRespuestaRefactor(respuesta, &aux)
-		identificador = aux["_id"].(string)
-	}
-	return identificador
-}
-
-func consultarActividades(subgrupo_identificador string) []map[string]interface{} {
-	var respuesta map[string]interface{}
-	var subgrupoDetalle map[string]interface{}
-	var datoPlan map[string]interface{}
-	var actividades []map[string]interface{}
-
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo-detalle?query=subgrupo_id:"+subgrupo_identificador, &respuesta); err == nil {
-		aux := make([]map[string]interface{}, 1)
-		request.LimpiezaRespuestaRefactor(respuesta, &aux)
-		subgrupoDetalle = aux[0]
-
-		if subgrupoDetalle["dato_plan"] != nil {
-			dato_plan_str := subgrupoDetalle["dato_plan"].(string)
-			json.Unmarshal([]byte(dato_plan_str), &datoPlan)
-
-			for indiceActividad, elemento := range datoPlan {
-				_ = indiceActividad
-				if err != nil {
-					log.Panic(err)
-				}
-				if elemento.(map[string]interface{})["activo"] == true {
-					actividades = append(actividades, elemento.(map[string]interface{}))
-				}
-
-				request.SortSlice(&actividades, "index")
-			}
-		}
-	} else {
-		panic(map[string]interface{}{"Code": "400", "Body": err, "Type": "error"})
-	}
-	return actividades
-}
-
-func consultarEstadoSeguimiento(seguimiento map[string]interface{}) string {
-	var respuestaEstado map[string]interface{}
-	enReporte := true
-	estado := map[string]interface{}{}
-	dato := make(map[string]interface{})
-	datoStr := seguimiento["dato"].(string)
-	json.Unmarshal([]byte(datoStr), &dato)
-
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento/"+seguimiento["estado_seguimiento_id"].(string), &respuestaEstado); err == nil {
-		estado = map[string]interface{}{
-			"nombre": respuestaEstado["Data"].(map[string]interface{})["nombre"],
-			"id":     respuestaEstado["Data"].(map[string]interface{})["_id"],
-		}
-
-		for _, actividad := range dato {
-			_, datosUnidos := actividad.(map[string]interface{})["estado"]
-
-			if datosUnidos {
-				if actividad.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Actividad en reporte" {
-					enReporte = false
-				}
-			} else {
-				var respuestaSeguimientoDetalle map[string]interface{}
-				var seguimientoDetalle map[string]interface{}
-
-				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+actividad.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
-					request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &seguimientoDetalle)
-					dato := make(map[string]interface{})
-					json.Unmarshal([]byte(seguimientoDetalle["estado"].(string)), &dato)
-					if dato["nombre"] != "Actividad en reporte" {
-						enReporte = false
-					}
-				} else {
-					panic(err)
-				}
-			}
-		}
-
-		if enReporte {
-			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:ER", &respuestaEstado); err == nil {
-				estado = map[string]interface{}{
-					"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
-					"id":     respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
-				}
-			}
-		}
-	} else {
-		panic(err)
-	}
-	return estado["id"].(string)
 }
 
 func consultarActividad(seguimiento map[string]interface{}, indice string, trimestre string) map[string]interface{} {
@@ -718,6 +598,98 @@ func consultarCuantitativoPlan(seguimiento map[string]interface{}, indice string
 	return response
 }
 
+func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, map[string]interface{}) {
+	var respuesta map[string]interface{}
+	var subgrupos []map[string]interface{}
+	var datoPlan map[string]interface{}
+	var respuestaSeguimientoDetalle map[string]interface{}
+	detalle := make(map[string]interface{})
+	dato := make(map[string]interface{})
+	observaciones := false
+	avaladas := false
+	estado := map[string]interface{}{}
+
+	planIdentificador := seguimiento["plan_id"].(string)
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo?query=padre:"+planIdentificador, &respuesta); err == nil {
+		request.LimpiezaRespuestaRefactor(respuesta, &subgrupos)
+
+		for i := 0; i < len(subgrupos); i++ {
+			if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "actividad") && strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "general") {
+				actividades := consultarActividades(subgrupos[i]["_id"].(string))
+				dato_plan_str := seguimiento["dato"].(string)
+				json.Unmarshal([]byte(dato_plan_str), &datoPlan)
+
+				for indiceActividad, elemento := range datoPlan {
+					identificador, segregado := elemento.(map[string]interface{})["id"]
+
+					for _, actividad := range actividades {
+						if reflect.TypeOf(actividad["index"]).String() == "string" {
+							if indiceActividad == actividad["index"] {
+								if segregado && identificador != "" {
+									if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+elemento.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
+										request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
+										detalle = planeacion.ConvertirStringJson(detalle)
+										estado = detalle["estado"].(map[string]interface{})
+										if estado["nombre"] != "Actividad avalada" && estado["nombre"] != "Con observaciones" {
+											dato[indiceActividad] = actividad["dato"]
+										}
+									}
+								} else {
+									if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Actividad avalada" && elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Con observaciones" {
+										dato[indiceActividad] = actividad["dato"]
+									}
+								}
+							}
+						} else if indiceActividad == strconv.FormatFloat(actividad["index"].(float64), 'g', 5, 64) {
+							if segregado && identificador != "" {
+								if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+elemento.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
+									request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
+									detalle = planeacion.ConvertirStringJson(detalle)
+									estado = detalle["estado"].(map[string]interface{})
+									if estado["nombre"] != "Actividad avalada" && estado["nombre"] != "Con observaciones" {
+										dato[indiceActividad] = actividad["dato"]
+									}
+								} else {
+									panic(err)
+								}
+							} else {
+								if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Actividad avalada" && elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Con observaciones" {
+									dato[indiceActividad] = actividad["dato"]
+								}
+							}
+						}
+					}
+					if segregado && identificador != "" {
+						if estado["nombre"] == "Con observaciones" {
+							observaciones = true
+						}
+
+						if estado["nombre"] == "Actividad avalada" {
+							avaladas = true
+						}
+					} else {
+						if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] == "Con observaciones" {
+							observaciones = true
+						}
+
+						if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] == "Actividad avalada" {
+							avaladas = true
+						}
+					}
+				}
+			}
+		}
+	} else {
+		panic(err)
+	}
+
+	if fmt.Sprintf("%v", dato) != "map[]" {
+		return false, false, map[string]interface{}{"error": 1, "motivo": "Hay actividades sin revisar", "actividades": dato}
+	}
+
+	return avaladas, observaciones, nil
+}
+
 func consultarRespuestaAnterior(dataSeg map[string]interface{}, indice int, respuestas []map[string]interface{}, indiceActividad string, trimestre string) []map[string]interface{} {
 	plan_identificador := dataSeg["plan_id"].(string)
 	var respuestaSeguimiento map[string]interface{}
@@ -859,275 +831,4 @@ func consultarRespuestaAnterior(dataSeg map[string]interface{}, indice int, resp
 		}
 	}
 	return respuestas
-}
-
-func actividadConObservaciones(seguimiento map[string]interface{}) bool {
-	var cuantitativo map[string]interface{}
-	var cualitativo map[string]interface{}
-
-	if seguimiento["cuantitativo"] != nil {
-		cuantitativo = seguimiento["cuantitativo"].(map[string]interface{})
-		for _, indicador := range cuantitativo["indicadores"].([]interface{}) {
-			if indicador.(map[string]interface{})["observaciones"] != "" && indicador.(map[string]interface{})["observaciones"] != "Sin observación" && indicador.(map[string]interface{})["observaciones"] != nil {
-				return true
-			}
-		}
-	}
-
-	if seguimiento["cualitativo"] != nil {
-		cualitativo = seguimiento["cualitativo"].(map[string]interface{})
-		if cualitativo["observaciones"] != "" && cualitativo["observaciones"] != "Sin observación" && cualitativo["observaciones"] != nil {
-			return true
-		}
-	}
-
-	if seguimiento["evidencia"] != nil {
-		for _, evidencia := range seguimiento["evidencia"].([]map[string]interface{}) {
-			if evidencia["Observacion"] != "" && evidencia["Observacion"] != "Sin observación" && evidencia["Observacion"] != nil {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func actividadReportable(seguimiento map[string]interface{}, indiceActividad string) (bool, map[string]interface{}) {
-	dato := make(map[string]interface{})
-	estado := map[string]interface{}{}
-	var respuestaSeguimientoDetalle map[string]interface{}
-	detalle := map[string]interface{}{}
-	var cuantitativo interface{}
-	var cualitativo interface{}
-	datoStr := seguimiento["dato"].(string)
-	json.Unmarshal([]byte(datoStr), &dato)
-
-	if dato[indiceActividad] == nil {
-		return false, map[string]interface{}{"error": 1, "motivo": "Actividad sin seguimiento"}
-	} else {
-		_, datosUnidos := dato[indiceActividad].(map[string]interface{})["estado"]
-
-		if datosUnidos {
-			estado = dato[indiceActividad].(map[string]interface{})["estado"].(map[string]interface{})
-			cuantitativo = dato[indiceActividad].(map[string]interface{})["cuantitativo"]
-			cualitativo = dato[indiceActividad].(map[string]interface{})["cualitativo"]
-		} else {
-			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
-				request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
-				detalle = planeacion.ConvertirStringJson(detalle)
-				estado = detalle["estado"].(map[string]interface{})
-				cualitativo = detalle["cualitativo"]
-				cuantitativo = detalle["cuantitativo"]
-			}
-
-			if fmt.Sprintf("%v", cuantitativo) == "map[]" {
-				cuantitativo = nil
-			}
-
-			if fmt.Sprintf("%v", cualitativo) == "map[]" {
-				cualitativo = nil
-			}
-		}
-
-		if estado["nombre"] != "Actividad en reporte" {
-			return false, map[string]interface{}{"error": 2, "motivo": "El estado de la actividad no es el adecuado"}
-		}
-
-		if cuantitativo == nil {
-			return false, map[string]interface{}{"error": 3, "motivo": "Componenten cuantitativo sin guardar"}
-		}
-
-		if cualitativo == nil {
-			return false, map[string]interface{}{"error": 4, "motivo": "Componenten cualitativo sin guardar"}
-		} else {
-			cualitativo := cualitativo.(map[string]interface{})
-			if cualitativo["dificultades"] == "" || cualitativo["productos"] == "" || cualitativo["reporte"] == "" {
-				return false, map[string]interface{}{"error": 5, "motivo": "Campos vacios en el componenten cualitativo"}
-			}
-		}
-	}
-	return true, nil
-}
-
-func seguimientoReportable(seguimiento map[string]interface{}) (bool, map[string]interface{}) {
-	var respuesta map[string]interface{}
-	var subgrupos []map[string]interface{}
-	var datoPlan map[string]interface{}
-	var respuestaSeguimientoDetalle map[string]interface{}
-	detalle := make(map[string]interface{})
-	dato := make(map[string]interface{})
-	planIdentificador := seguimiento["plan_id"].(string)
-
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo?query=padre:"+planIdentificador, &respuesta); err == nil {
-		request.LimpiezaRespuestaRefactor(respuesta, &subgrupos)
-
-		for i := 0; i < len(subgrupos); i++ {
-			if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "actividad") && strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "general") {
-				actividades := consultarActividades(subgrupos[i]["_id"].(string))
-
-				if seguimiento["dato"] == "{}" {
-					for _, actividad := range actividades {
-						dato[actividad["index"].(string)] = actividad["dato"]
-					}
-					return false, map[string]interface{}{"error": 1, "motivo": "No hay actividades resportadas", "actividades": dato}
-				} else {
-					dato_plan_str := seguimiento["dato"].(string)
-					json.Unmarshal([]byte(dato_plan_str), &datoPlan)
-
-					for indiceActividad, elemento := range datoPlan {
-						identificador, segregado := elemento.(map[string]interface{})["id"]
-
-						if segregado && identificador != "" {
-							if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+identificador.(string), &respuestaSeguimientoDetalle); err == nil {
-								request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
-								detalle = planeacion.ConvertirStringJson(detalle)
-							} else {
-								panic(err)
-							}
-
-							for _, actividad := range actividades {
-								if reflect.TypeOf(actividad["index"]).String() == "string" {
-									if indiceActividad == actividad["index"] {
-										actividad["estado"] = detalle["estado"]
-									}
-								} else {
-									if indiceActividad == strconv.FormatFloat(actividad["index"].(float64), 'g', 5, 64) {
-										actividad["estado"] = detalle["estado"]
-									}
-								}
-							}
-						} else {
-							for _, actividad := range actividades {
-								if reflect.TypeOf(actividad["index"]).String() == "string" {
-									if indiceActividad == actividad["index"] {
-										actividad["estado"] = elemento.(map[string]interface{})["estado"]
-									}
-								} else {
-									if indiceActividad == strconv.FormatFloat(actividad["index"].(float64), 'g', 5, 64) {
-										actividad["estado"] = elemento.(map[string]interface{})["estado"]
-									}
-								}
-							}
-						}
-					}
-					for _, actividad := range actividades {
-						if actividad["estado"] == nil {
-							if reflect.TypeOf(actividad["index"]).String() == "string" {
-								dato[actividad["index"].(string)] = actividad["dato"]
-							} else {
-								dato[strconv.FormatFloat(actividad["index"].(float64), 'g', 5, 64)] = actividad["dato"]
-							}
-						} else if actividad["estado"].(map[string]interface{})["nombre"] != "Actividad reportada" && actividad["estado"].(map[string]interface{})["nombre"] != "Actividad avalada" {
-							if reflect.TypeOf(actividad["index"]).String() == "string" {
-								dato[actividad["index"].(string)] = actividad["dato"]
-							} else {
-								dato[strconv.FormatFloat(actividad["index"].(float64), 'g', 5, 64)] = actividad["dato"]
-							}
-						}
-					}
-
-					if fmt.Sprintf("%v", dato) != "map[]" {
-						return false, map[string]interface{}{"error": 2, "motivo": "Hay actividades sin resportar", "actividades": dato}
-					} else {
-						return true, nil
-					}
-				}
-			}
-		}
-	} else {
-		panic(err)
-	}
-	return true, nil
-}
-
-func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, map[string]interface{}) {
-	var respuesta map[string]interface{}
-	var subgrupos []map[string]interface{}
-	var datoPlan map[string]interface{}
-	var respuestaSeguimientoDetalle map[string]interface{}
-	detalle := make(map[string]interface{})
-	dato := make(map[string]interface{})
-	observaciones := false
-	avaladas := false
-	estado := map[string]interface{}{}
-
-	planIdentificador := seguimiento["plan_id"].(string)
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo?query=padre:"+planIdentificador, &respuesta); err == nil {
-		request.LimpiezaRespuestaRefactor(respuesta, &subgrupos)
-
-		for i := 0; i < len(subgrupos); i++ {
-			if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "actividad") && strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "general") {
-				actividades := consultarActividades(subgrupos[i]["_id"].(string))
-				dato_plan_str := seguimiento["dato"].(string)
-				json.Unmarshal([]byte(dato_plan_str), &datoPlan)
-
-				for indiceActividad, elemento := range datoPlan {
-					identificador, segregado := elemento.(map[string]interface{})["id"]
-
-					for _, actividad := range actividades {
-						if reflect.TypeOf(actividad["index"]).String() == "string" {
-							if indiceActividad == actividad["index"] {
-								if segregado && identificador != "" {
-									if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+elemento.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
-										request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
-										detalle = planeacion.ConvertirStringJson(detalle)
-										estado = detalle["estado"].(map[string]interface{})
-										if estado["nombre"] != "Actividad avalada" && estado["nombre"] != "Con observaciones" {
-											dato[indiceActividad] = actividad["dato"]
-										}
-									}
-								} else {
-									if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Actividad avalada" && elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Con observaciones" {
-										dato[indiceActividad] = actividad["dato"]
-									}
-								}
-							}
-						} else if indiceActividad == strconv.FormatFloat(actividad["index"].(float64), 'g', 5, 64) {
-							if segregado && identificador != "" {
-								if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+elemento.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
-									request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
-									detalle = planeacion.ConvertirStringJson(detalle)
-									estado = detalle["estado"].(map[string]interface{})
-									if estado["nombre"] != "Actividad avalada" && estado["nombre"] != "Con observaciones" {
-										dato[indiceActividad] = actividad["dato"]
-									}
-								} else {
-									panic(err)
-								}
-							} else {
-								if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Actividad avalada" && elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Con observaciones" {
-									dato[indiceActividad] = actividad["dato"]
-								}
-							}
-						}
-					}
-					if segregado && identificador != "" {
-						if estado["nombre"] == "Con observaciones" {
-							observaciones = true
-						}
-
-						if estado["nombre"] == "Actividad avalada" {
-							avaladas = true
-						}
-					} else {
-						if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] == "Con observaciones" {
-							observaciones = true
-						}
-
-						if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] == "Actividad avalada" {
-							avaladas = true
-						}
-					}
-				}
-			}
-		}
-	} else {
-		panic(err)
-	}
-
-	if fmt.Sprintf("%v", dato) != "map[]" {
-		return false, false, map[string]interface{}{"error": 1, "motivo": "Hay actividades sin revisar", "actividades": dato}
-	}
-
-	return avaladas, observaciones, nil
 }

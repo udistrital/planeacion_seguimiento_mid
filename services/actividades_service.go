@@ -10,6 +10,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
+	"github.com/udistrital/planeacion_seguimiento_mid/helpers"
 	"github.com/udistrital/utils_oas/planeacion"
 	"github.com/udistrital/utils_oas/request"
 )
@@ -162,7 +163,7 @@ func RevisarActividad(requestBody []byte, planIdentificador string, indiceActivi
 			detalle["cualitativo"] = body["cualitativo"]
 			detalle["cuantitativo"] = body["cuantitativo"]
 			detalle["estado"] = estado
-			guardarDetalleSeguimiento(detalle, true)
+			helpers.GuardarDetalleSeguimiento(detalle, true)
 		}
 	} else {
 		dato[indiceActividad].(map[string]interface{})["estado"] = estado
@@ -237,7 +238,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 				return nil, errors.New(err.Error())
 			}
 			detalle["estado"] = estado
-			guardarDetalleSeguimiento(detalle, true)
+			helpers.GuardarDetalleSeguimiento(detalle, true)
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error -->", err)
@@ -281,4 +282,33 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 			return nil, nil
 		}
 	}
+}
+
+func consultarActividades(subgrupo_identificador string) []map[string]interface{} {
+	var respuesta map[string]interface{}
+	var subgrupoDetalle map[string]interface{}
+	var datoPlan map[string]interface{}
+	var actividades []map[string]interface{}
+
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo-detalle?query=subgrupo_id:"+subgrupo_identificador, &respuesta); err == nil {
+		aux := make([]map[string]interface{}, 1)
+		request.LimpiezaRespuestaRefactor(respuesta, &aux)
+		subgrupoDetalle = aux[0]
+
+		if subgrupoDetalle["dato_plan"] != nil {
+			dato_plan_str := subgrupoDetalle["dato_plan"].(string)
+			json.Unmarshal([]byte(dato_plan_str), &datoPlan)
+
+			for _, elemento := range datoPlan {
+				if elemento.(map[string]interface{})["activo"] == true {
+					actividades = append(actividades, elemento.(map[string]interface{}))
+				}
+
+				request.SortSlice(&actividades, "index")
+			}
+		}
+	} else {
+		panic(map[string]interface{}{"Code": "400", "Body": err, "Type": "error"})
+	}
+	return actividades
 }
