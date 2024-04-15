@@ -2,8 +2,10 @@ package helpers
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/utils_oas/planeacion"
 	"github.com/udistrital/utils_oas/request"
 )
@@ -90,7 +92,7 @@ func GuardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) 
 	return identificador
 }
 
-func ConsultarEstadoSeguimiento(seguimiento map[string]interface{}) string {
+func ConsultarEstadoSeguimiento(seguimiento map[string]interface{}) (string, error) {
 	var respuestaEstado map[string]interface{}
 	enReporte := true
 	estado := map[string]interface{}{}
@@ -123,7 +125,8 @@ func ConsultarEstadoSeguimiento(seguimiento map[string]interface{}) string {
 						enReporte = false
 					}
 				} else {
-					panic(err)
+					logs.Error("Error --> ", err)
+					return "", errors.New(err.Error())
 				}
 			}
 		}
@@ -137,7 +140,8 @@ func ConsultarEstadoSeguimiento(seguimiento map[string]interface{}) string {
 			}
 		}
 	} else {
-		panic(err)
+		logs.Error("Error --> ", err)
+		return "", errors.New(err.Error())
 	}
-	return estado["id"].(string)
+	return estado["id"].(string), nil
 }

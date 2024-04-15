@@ -15,6 +15,10 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
+const (
+	ACTIVIDAD_AVALADA = "AAV"
+)
+
 func ConsultarActividadesGenerales(seguimiento_identificador string) ([]map[string]interface{}, error) {
 	var respuestaSeguimiento map[string]interface{}
 	var respuestaSeguimientoDetalle map[string]interface{}
@@ -35,8 +39,11 @@ func ConsultarActividadesGenerales(seguimiento_identificador string) ([]map[stri
 
 				for i := 0; i < len(subgrupos); i++ {
 					if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "actividad") && strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "general") {
-						actividades := consultarActividades(subgrupos[i]["_id"].(string))
-
+						actividades, errActividades := consultarActividades(subgrupos[i]["_id"].(string))
+						if errActividades != nil {
+							logs.Error("Error --> ", errActividades)
+							return nil, errors.New(errActividades.Error())
+						}
 						if seguimiento[0]["dato"] == "{}" {
 							for _, actividad := range actividades {
 								actividad["estado"] = map[string]interface{}{"nombre": "Sin reporte"}
@@ -187,6 +194,9 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 	var seguimiento map[string]interface{}
 	var respuestaEstado map[string]interface{}
 	var respuestaDetalle map[string]interface{}
+	var respuestaEstadoAvalado map[string]interface{}
+	var estadoAvalado []map[string]interface{}
+	idActividadAvalada := ""
 	detalle := map[string]interface{}{}
 	dato := make(map[string]interface{})
 	estado := map[string]interface{}{}
@@ -208,6 +218,14 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 	json.Unmarshal([]byte(datoStr), &dato)
 	identificador, segregado := body["id"].(string)
 
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/?query=codigo_abreviacion:"+ACTIVIDAD_AVALADA, &respuestaEstadoAvalado); err == nil {
+		request.LimpiezaRespuestaRefactor(respuestaEstadoAvalado, &estadoAvalado)
+		idActividadAvalada = estadoAvalado[0]["_id"].(string)
+	} else {
+		logs.Error("Error -->", err)
+		return nil, errors.New(err.Error())
+	}
+
 	if segregado && identificador != "" {
 		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+identificador, &respuestaDetalle); err == nil {
 			request.LimpiezaRespuestaRefactor(respuestaDetalle, &detalle)
@@ -217,7 +235,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 			return nil, errors.New(err.Error())
 		}
 
-		if detalle["estado"].(map[string]interface{})["id"] == "63793207242b813898e9856b" {
+		if detalle["estado"].(map[string]interface{})["id"] == idActividadAvalada {
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:OAPC", &respuestaEstado); err == nil {
 				estado = map[string]interface{}{
 					"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
@@ -251,7 +269,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 	} else {
 		dato[indiceActividad] = body
 
-		if dato[indiceActividad].(map[string]interface{})["estado"].(map[string]interface{})["id"] == "63793207242b813898e9856b" {
+		if dato[indiceActividad].(map[string]interface{})["estado"].(map[string]interface{})["id"] == idActividadAvalada {
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:OAPC", &respuestaEstado); err == nil {
 				estado = map[string]interface{}{
 					"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
@@ -284,7 +302,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 	}
 }
 
-func consultarActividades(subgrupo_identificador string) []map[string]interface{} {
+func consultarActividades(subgrupo_identificador string) ([]map[string]interface{}, error) {
 	var respuesta map[string]interface{}
 	var subgrupoDetalle map[string]interface{}
 	var datoPlan map[string]interface{}
@@ -308,7 +326,8 @@ func consultarActividades(subgrupo_identificador string) []map[string]interface{
 			}
 		}
 	} else {
-		panic(map[string]interface{}{"Code": "400", "Body": err, "Type": "error"})
+		logs.Error("Error --> ", err)
+		return nil, errors.New(err.Error())
 	}
-	return actividades
+	return actividades, nil
 }

@@ -100,7 +100,12 @@ func GuardarDocumentos(requestBody []byte, planIdentificador string, indiceActiv
 			}
 			valor, _ := json.Marshal(dato)
 			seguimiento["dato"] = string(valor)
-			seguimiento["estado_seguimiento_id"] = helpers.ConsultarEstadoSeguimiento(seguimiento)
+			estadoSeguimiento, errEstadoSeg := helpers.ConsultarEstadoSeguimiento(seguimiento)
+			if errEstadoSeg != nil {
+				logs.Error("Error --> ", errEstadoSeg)
+				return nil, errors.New(errEstadoSeg.Error())
+			}
+			seguimiento["estado_seguimiento_id"] = estadoSeguimiento
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error --> ", err)
@@ -211,7 +216,12 @@ func GuardarCualitativo(requestBody []byte, planIdentificador string, indiceActi
 			}
 			b, _ := json.Marshal(dato)
 			seguimiento["dato"] = string(b)
-			seguimiento["estado_seguimiento_id"] = helpers.ConsultarEstadoSeguimiento(seguimiento)
+			estadoSeguimiento, errEstadoSeg := helpers.ConsultarEstadoSeguimiento(seguimiento)
+			if errEstadoSeg != nil {
+				logs.Error("Error --> ", errEstadoSeg)
+				return nil, errors.New(errEstadoSeg.Error())
+			}
+			seguimiento["estado_seguimiento_id"] = estadoSeguimiento
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error -->", err)
@@ -315,7 +325,12 @@ func GuardarCuantitativo(requestBody []byte, planIdentificador string, indiceAct
 
 			b, _ := json.Marshal(dato)
 			seguimiento["dato"] = string(b)
-			seguimiento["estado_seguimiento_id"] = helpers.ConsultarEstadoSeguimiento(seguimiento)
+			estadoSeguimiento, errEstadoSeg := helpers.ConsultarEstadoSeguimiento(seguimiento)
+			if errEstadoSeg != nil {
+				logs.Error("Error --> ", errEstadoSeg)
+				return nil, errors.New(errEstadoSeg.Error())
+			}
+			seguimiento["estado_seguimiento_id"] = estadoSeguimiento
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error -->", err)

@@ -17,12 +17,28 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
+const (
+	SEGUIMIENTO_PLAN_ACCION = "S_SP"
+)
+
 func HabilitarReportes(entrada map[string]interface{}) ([]map[string]interface{}, error) {
 	var respuesta map[string]interface{}
 	var respuestaPut map[string]interface{}
 	var reportes []map[string]interface{}
 
-	if errPeriodo := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+`/periodo-seguimiento?query=tipo_seguimiento_id:61f236f525e40c582a0840d0,periodo_id:`+entrada["periodo_id"].(string), &respuesta); errPeriodo == nil {
+	var respuestaTipoPlanAccion map[string]interface{}
+	var tipoSeguimientoPLanAccion []map[string]interface{}
+	idSeguimientoPlanAccion := ""
+
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/tipo-seguimiento/?query=codigo_abreviacion:"+SEGUIMIENTO_PLAN_ACCION, &respuestaTipoPlanAccion); err == nil {
+		request.LimpiezaRespuestaRefactor(respuestaTipoPlanAccion, &tipoSeguimientoPLanAccion)
+		idSeguimientoPlanAccion = tipoSeguimientoPLanAccion[0]["_id"].(string)
+	} else {
+		logs.Error("Error -->", err)
+		return nil, errors.New(err.Error())
+	}
+
+	if errPeriodo := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+`/periodo-seguimiento?query=tipo_seguimiento_id:`+idSeguimientoPlanAccion+`,periodo_id:`+entrada["periodo_id"].(string), &respuesta); errPeriodo == nil {
 		request.LimpiezaRespuestaRefactor(respuesta, &reportes)
 
 		if len(reportes) > 0 {
@@ -38,7 +54,7 @@ func HabilitarReportes(entrada map[string]interface{}) ([]map[string]interface{}
 			}
 		} else {
 			elemento := map[string]interface{}{
-				"tipo_seguimiento_id": "61f236f525e40c582a0840d0",
+				"tipo_seguimiento_id": idSeguimientoPlanAccion,
 				"activo":              true,
 				"fecha_inicio":        entrada["fecha_inicio"],
 				"fecha_fin":           entrada["fecha_fin"],
@@ -47,7 +63,7 @@ func HabilitarReportes(entrada map[string]interface{}) ([]map[string]interface{}
 			}
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento", "POST", &respuestaPut, elemento); err == nil {
-				if errPeriodoSeguimiento := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+`/periodo-seguimiento?query=tipo_seguimiento_id:61f236f525e40c582a0840d0,periodo_id:`+entrada["periodo_id"].(string), &respuesta); errPeriodoSeguimiento == nil {
+				if errPeriodoSeguimiento := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+`/periodo-seguimiento?query=tipo_seguimiento_id:`+idSeguimientoPlanAccion+`,periodo_id:`+entrada["periodo_id"].(string), &respuesta); errPeriodoSeguimiento == nil {
 					request.LimpiezaRespuestaRefactor(respuesta, &reportes)
 					return reportes, nil
 				} else {
@@ -77,6 +93,9 @@ func CrearReportes(plan_identificador string, tipo string) ([]map[string]interfa
 	var arregloReportes []map[string]interface{}
 	reporte := make(map[string]interface{})
 	nuevo := true
+	var respuestaTipoPlanAccion map[string]interface{}
+	var tipoSeguimientoPLanAccion []map[string]interface{}
+	idSeguimientoPlanAccion := ""
 
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan_identificador, &respuesta); err == nil {
 		request.LimpiezaRespuestaRefactor(respuesta, &plan)
@@ -86,8 +105,16 @@ func CrearReportes(plan_identificador string, tipo string) ([]map[string]interfa
 			return nil, errors.New(errTrimestres.Error())
 		}
 
+		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/tipo-seguimiento/?query=codigo_abreviacion:"+SEGUIMIENTO_PLAN_ACCION, &respuestaTipoPlanAccion); err == nil {
+			request.LimpiezaRespuestaRefactor(respuestaTipoPlanAccion, &tipoSeguimientoPLanAccion)
+			idSeguimientoPlanAccion = tipoSeguimientoPLanAccion[0]["_id"].(string)
+		} else {
+			logs.Error("Error -->", err)
+			return nil, errors.New(err.Error())
+		}
+
 		// Caso especial para el plan de acción, retomar avances de seguimiento de versiones anteriores
-		if tipo == "61f236f525e40c582a0840d0" && plan["padre_plan_id"] != nil {
+		if tipo == idSeguimientoPlanAccion && plan["padre_plan_id"] != nil {
 			nuevo = false
 
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan?query=dependencia_id:"+plan["dependencia_id"].(string)+",vigencia:"+plan["vigencia"].(string)+",formato:false,nombre:"+url.QueryEscape(plan["nombre"].(string)), &respuestaPadres); err == nil {
@@ -346,22 +373,22 @@ func ReportarSeguimiento(identificadorSeguimiento string) (interface{}, error) {
 		aux := make(map[string]interface{}, 1)
 		request.LimpiezaRespuestaRefactor(respuesta, &aux)
 		seguimiento = aux
-		reportable, mensaje := seguimientoReportable(seguimiento)
+		errorReportable := seguimientoReportable(seguimiento)
 
-		if reportable {
+		if errorReportable == nil {
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:EAR", &respuestaEstado); err == nil {
 				seguimiento["estado_seguimiento_id"] = respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"]
 			}
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error -->", err)
-				return nil, errors.New("error del servicio ReportarSeguimiento:    Error actualizando seguimiento" + err.Error())
+				return nil, errors.New(err.Error())
 			}
 
 			return seguimiento, nil
 		} else {
-			logs.Error("Error -->", formatdata.JsonPrint(mensaje))
-			return nil, errors.New("error del servicio ReportarSeguimiento:    El seguimiento no es reportable")
+			logs.Error("Error -->", errorReportable)
+			return nil, errors.New(errorReportable.Error())
 		}
 	} else {
 		logs.Error("Error -->", err)
@@ -488,7 +515,7 @@ func actividadReportable(seguimiento map[string]interface{}, indiceActividad str
 	return true, nil
 }
 
-func seguimientoReportable(seguimiento map[string]interface{}) (bool, map[string]interface{}) {
+func seguimientoReportable(seguimiento map[string]interface{}) error {
 	var respuesta map[string]interface{}
 	var subgrupos []map[string]interface{}
 	var datoPlan map[string]interface{}
@@ -502,13 +529,18 @@ func seguimientoReportable(seguimiento map[string]interface{}) (bool, map[string
 
 		for i := 0; i < len(subgrupos); i++ {
 			if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "actividad") && strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "general") {
-				actividades := consultarActividades(subgrupos[i]["_id"].(string))
+				actividades, errActividades := consultarActividades(subgrupos[i]["_id"].(string))
+				if errActividades != nil {
+					logs.Error("Error --> ", errActividades)
+					return errors.New(errActividades.Error())
+
+				}
 
 				if seguimiento["dato"] == "{}" {
 					for _, actividad := range actividades {
 						dato[actividad["index"].(string)] = actividad["dato"]
 					}
-					return false, map[string]interface{}{"error": 1, "motivo": "No hay actividades resportadas", "actividades": dato}
+					return errors.New("no hay actividades resportadas")
 				} else {
 					dato_plan_str := seguimiento["dato"].(string)
 					json.Unmarshal([]byte(dato_plan_str), &datoPlan)
@@ -521,7 +553,8 @@ func seguimientoReportable(seguimiento map[string]interface{}) (bool, map[string
 								request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 								detalle = planeacion.ConvertirStringJson(detalle)
 							} else {
-								panic(err)
+								logs.Error("Error --> ", err)
+								return errors.New(err.Error())
 							}
 
 							for _, actividad := range actividades {
@@ -566,15 +599,16 @@ func seguimientoReportable(seguimiento map[string]interface{}) (bool, map[string
 					}
 
 					if fmt.Sprintf("%v", dato) != "map[]" {
-						return false, map[string]interface{}{"error": 2, "motivo": "Hay actividades sin resportar", "actividades": dato}
+						return errors.New("Hay actividades sin reportar")
 					} else {
-						return true, nil
+						return nil
 					}
 				}
 			}
 		}
 	} else {
-		panic(err)
+		logs.Error("Error --> ", err)
+		return errors.New(err.Error())
 	}
-	return true, nil
+	return nil
 }
