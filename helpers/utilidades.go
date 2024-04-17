@@ -3,11 +3,13 @@ package helpers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/utils_oas/planeacion"
 	"github.com/udistrital/utils_oas/request"
+	"github.com/udistrital/utils_oas/time_bogota"
 )
 
 func GuardarDocumento(documentos []interface{}) []interface{} {
@@ -64,17 +66,40 @@ func GuardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) 
 	url := "http://" + beego.AppConfig.String("PlanesService") + "/seguimiento-detalle"
 
 	detalle = planeacion.ConvertirJsonString(detalle)
+	data := map[string]interface{}{}
 
-	if _, existe := detalle["informacion"]; !existe {
+	data["estado"] = detalle["estado"].(string)
+	if fmt.Sprintf("%v", detalle["activo"]) == "<nil>" {
+		data["activo"] = "true"
+	} else {
+		data["activo"] = detalle["activo"].(string)
+	}
+	if fmt.Sprintf("%v", detalle["fecha_creacion"]) == "<nil>" {
+		data["fecha_creacion"] = time_bogota.TiempoBogotaFormato()
+		data["fecha_modificacion"] = time_bogota.TiempoBogotaFormato()
+	} else {
+		data["fecha_creacion"] = detalle["fecha_creacion"].(string)
+		data["fecha_modificacion"] = detalle["fecha_modificacion"].(string)
+	}
+
+	if valor, existe := detalle["informacion"]; existe {
+		detalle["informacion"] = valor
+	} else {
 		detalle["informacion"] = "{}"
 	}
-	if _, existe := detalle["cualitativo"]; !existe {
+	if valor, existe := detalle["cualitativo"]; existe {
+		detalle["cualitativo"] = valor
+	} else {
 		detalle["cualitativo"] = "{}"
 	}
-	if _, existe := detalle["cuantitativo"]; !existe {
+	if valor, existe := detalle["cuantitativo"]; existe {
+		detalle["cuantitativo"] = valor
+	} else {
 		detalle["cuantitativo"] = "{}"
 	}
-	if _, existe := detalle["evidencia"]; !existe {
+	if valor, existe := detalle["evidencia"]; existe {
+		detalle["evidencia"] = valor
+	} else {
 		detalle["evidencia"] = "[]"
 	}
 
@@ -84,7 +109,8 @@ func GuardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) 
 	} else {
 		tipo_peticion = "POST"
 	}
-	if err := request.SendJson(url, tipo_peticion, &respuesta, detalle); err == nil {
+
+	if err := request.SendJson(url, tipo_peticion, &respuesta, data); err == nil && respuesta["Status"].(string) != "400" {
 		aux := make(map[string]interface{})
 		request.LimpiezaRespuestaRefactor(respuesta, &aux)
 		identificador = aux["_id"].(string)
@@ -95,7 +121,7 @@ func GuardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) 
 func ConsultarEstadoSeguimiento(seguimiento map[string]interface{}) (string, error) {
 	var respuestaEstado map[string]interface{}
 	enReporte := true
-	estado := map[string]interface{}{}
+	var estado map[string]interface{}
 	dato := make(map[string]interface{})
 	datoStr := seguimiento["dato"].(string)
 	json.Unmarshal([]byte(datoStr), &dato)

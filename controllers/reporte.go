@@ -104,9 +104,7 @@ func (c *ReporteController) ReportarSeguimiento() {
 func (c *ReporteController) ReportarActividad() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	indiceActividad := c.Ctx.Input.Param(":index")
-
-	if resultado, err := services.ReportarActividad(c.Ctx.Input.RequestBody, indiceActividad); err == nil {
+	if resultado, err := services.ReportarActividad(c.Ctx.Input.RequestBody, c.Ctx.Input.Param(":index")); err == nil {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {

@@ -24,7 +24,7 @@ func GuardarSeguimiento(requestBody []byte, planIdentificador string, indiceActi
 	var respuestaSeguimientoDetalle map[string]interface{}
 	detalle := make(map[string]interface{})
 	dato := make(map[string]interface{})
-	estado := map[string]interface{}{}
+	var estado map[string]interface{}
 
 	if err := json.Unmarshal(requestBody, &body); err == nil {
 		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+planIdentificador+",periodo_seguimiento_id:"+trimestre, &respuesta); err == nil {
@@ -313,7 +313,7 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 						evidenciaSeg = detalle["evidencia"].([]map[string]interface{})
 					}
 
-					if len(detalle["estado"].(map[string]interface{})) == 0 {
+					if len(planeacion.StringAJson(detalle["estado"].(string))) == 0 {
 						if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:SRE", &respuestaEstado); err == nil {
 							estado = map[string]interface{}{
 								"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
@@ -321,7 +321,7 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 							}
 						}
 					} else {
-						estado = detalle["estado"].(map[string]interface{})
+						estado = planeacion.StringAJson(detalle["estado"].(string))
 					}
 				}
 			}
@@ -453,10 +453,11 @@ func consultarInformacionPlan(seguimiento map[string]interface{}, indice string)
 					if dato["required"] == false || dato["required"] == "false" {
 						continue
 					}
-
-					json.Unmarshal([]byte(respuesta["Data"].([]interface{})[0].(map[string]interface{})["dato_plan"].(string)), &datoPlan)
-					if datoPlan[indice] == nil {
-						continue
+					if _, e := respuesta["Data"].([]interface{})[0].(map[string]interface{})["dato_plan"]; e {
+						json.Unmarshal([]byte(respuesta["Data"].([]interface{})[0].(map[string]interface{})["dato_plan"].(string)), &datoPlan)
+						if datoPlan[indice] == nil {
+							continue
+						}
 					}
 
 					switch {
@@ -646,7 +647,7 @@ func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, error)
 										if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+elemento.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 											request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 											detalle = planeacion.ConvertirStringJson(detalle)
-											estado = detalle["estado"].(map[string]interface{})
+											estado = planeacion.StringAJson(detalle["estado"].(string))
 											if estado["nombre"] != "Actividad avalada" && estado["nombre"] != "Con observaciones" {
 												dato[indiceActividad] = actividad["dato"]
 											}
@@ -662,7 +663,7 @@ func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, error)
 									if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+elemento.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 										request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 										detalle = planeacion.ConvertirStringJson(detalle)
-										estado = detalle["estado"].(map[string]interface{})
+										estado = planeacion.StringAJson(detalle["estado"].(string))
 										if estado["nombre"] != "Actividad avalada" && estado["nombre"] != "Con observaciones" {
 											dato[indiceActividad] = actividad["dato"]
 										}

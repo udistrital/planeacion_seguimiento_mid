@@ -105,7 +105,7 @@ func RevisarActividad(requestBody []byte, planIdentificador string, indiceActivi
 	detalle := map[string]interface{}{}
 	dato := make(map[string]interface{})
 	aux := make([]map[string]interface{}, 1)
-	estado := map[string]interface{}{}
+	var estado map[string]interface{}
 	comentario := false
 	codigo_abreviacion := ""
 
@@ -218,7 +218,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 	json.Unmarshal([]byte(datoStr), &dato)
 	identificador, segregado := body["id"].(string)
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/?query=codigo_abreviacion:"+ACTIVIDAD_AVALADA, &respuestaEstadoAvalado); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:"+ACTIVIDAD_AVALADA, &respuestaEstadoAvalado); err == nil {
 		request.LimpiezaRespuestaRefactor(respuestaEstadoAvalado, &estadoAvalado)
 		idActividadAvalada = estadoAvalado[0]["_id"].(string)
 	} else {
@@ -235,7 +235,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 			return nil, errors.New(err.Error())
 		}
 
-		if detalle["estado"].(map[string]interface{})["id"] == idActividadAvalada {
+		if planeacion.StringAJson(detalle["estado"].(string))["id"] == idActividadAvalada {
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:OAPC", &respuestaEstado); err == nil {
 				estado = map[string]interface{}{
 					"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],

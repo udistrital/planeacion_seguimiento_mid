@@ -12,7 +12,6 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/planeacion_seguimiento_mid/helpers"
-	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/planeacion"
 	"github.com/udistrital/utils_oas/request"
 )
@@ -153,7 +152,7 @@ func CrearReportes(plan_identificador string, tipo string) ([]map[string]interfa
 				detalle := make(map[string]interface{})
 				dato := make(map[string]interface{})
 				var respuestaEstado map[string]interface{}
-				estado := map[string]interface{}{}
+				var estado map[string]interface{}
 
 				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AER", &respuestaEstado); err == nil {
 					estado = map[string]interface{}{
@@ -370,9 +369,8 @@ func ReportarSeguimiento(identificadorSeguimiento string) (interface{}, error) {
 	var respuestaEstado map[string]interface{}
 
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+identificadorSeguimiento, &respuesta); err == nil {
-		aux := make(map[string]interface{}, 1)
-		request.LimpiezaRespuestaRefactor(respuesta, &aux)
-		seguimiento = aux
+		request.LimpiezaRespuestaRefactor(respuesta, &seguimiento)
+
 		errorReportable := seguimientoReportable(seguimiento)
 
 		if errorReportable == nil {
@@ -413,9 +411,9 @@ func ReportarActividad(requestBody []byte, indiceActividad string) (interface{},
 			seguimiento = aux
 			datoStr := seguimiento["dato"].(string)
 			json.Unmarshal([]byte(datoStr), &dato)
-			reportable, mensaje := actividadReportable(seguimiento, indiceActividad)
+			errActividadReportable := actividadReportable(seguimiento, indiceActividad)
 
-			if reportable {
+			if errActividadReportable == nil {
 				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AR", &respuestaEstado); err == nil {
 					estado = map[string]interface{}{
 						"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
@@ -445,8 +443,8 @@ func ReportarActividad(requestBody []byte, indiceActividad string) (interface{},
 				}
 				return seguimiento, nil
 			} else {
-				logs.Error("Error -->", formatdata.JsonPrint(mensaje))
-				return nil, errors.New("error del servicio ReportarActividad:    La actividad no es reportable")
+				logs.Error("Error -->", errActividadReportable)
+				return nil, errors.New("error del servicio ReportarActividad:    La actividad no es reportable" + errActividadReportable.Error())
 			}
 		} else {
 			logs.Error("Error -->", err)
@@ -458,7 +456,7 @@ func ReportarActividad(requestBody []byte, indiceActividad string) (interface{},
 	}
 }
 
-func actividadReportable(seguimiento map[string]interface{}, indiceActividad string) (bool, map[string]interface{}) {
+func actividadReportable(seguimiento map[string]interface{}, indiceActividad string) error {
 	dato := make(map[string]interface{})
 	estado := map[string]interface{}{}
 	var respuestaSeguimientoDetalle map[string]interface{}
@@ -469,7 +467,7 @@ func actividadReportable(seguimiento map[string]interface{}, indiceActividad str
 	json.Unmarshal([]byte(datoStr), &dato)
 
 	if dato[indiceActividad] == nil {
-		return false, map[string]interface{}{"error": 1, "motivo": "Actividad sin seguimiento"}
+		return errors.New("actividad sin seguimiento")
 	} else {
 		_, datosUnidos := dato[indiceActividad].(map[string]interface{})["estado"]
 
@@ -481,7 +479,7 @@ func actividadReportable(seguimiento map[string]interface{}, indiceActividad str
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 				request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 				detalle = planeacion.ConvertirStringJson(detalle)
-				estado = detalle["estado"].(map[string]interface{})
+				estado = planeacion.StringAJson(detalle["estado"].(string))
 				cualitativo = detalle["cualitativo"]
 				cuantitativo = detalle["cuantitativo"]
 			}
@@ -496,23 +494,23 @@ func actividadReportable(seguimiento map[string]interface{}, indiceActividad str
 		}
 
 		if estado["nombre"] != "Actividad en reporte" {
-			return false, map[string]interface{}{"error": 2, "motivo": "El estado de la actividad no es el adecuado"}
+			return errors.New("el estado de la actividad no es el adecuado")
 		}
 
 		if cuantitativo == nil {
-			return false, map[string]interface{}{"error": 3, "motivo": "Componenten cuantitativo sin guardar"}
+			return errors.New("componente cuantitativo sin guardar")
 		}
 
 		if cualitativo == nil {
-			return false, map[string]interface{}{"error": 4, "motivo": "Componenten cualitativo sin guardar"}
+			return errors.New("componente cualitativo sin guardar")
 		} else {
 			cualitativo := cualitativo.(map[string]interface{})
 			if cualitativo["dificultades"] == "" || cualitativo["productos"] == "" || cualitativo["reporte"] == "" {
-				return false, map[string]interface{}{"error": 5, "motivo": "Campos vacios en el componenten cualitativo"}
+				return errors.New("campos vacios en el componenten cualitativo")
 			}
 		}
 	}
-	return true, nil
+	return nil
 }
 
 func seguimientoReportable(seguimiento map[string]interface{}) error {
@@ -599,7 +597,7 @@ func seguimientoReportable(seguimiento map[string]interface{}) error {
 					}
 
 					if fmt.Sprintf("%v", dato) != "map[]" {
-						return errors.New("Hay actividades sin reportar")
+						return errors.New("hay actividades sin reportar")
 					} else {
 						return nil
 					}
