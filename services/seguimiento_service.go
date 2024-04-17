@@ -453,11 +453,10 @@ func consultarInformacionPlan(seguimiento map[string]interface{}, indice string)
 					if dato["required"] == false || dato["required"] == "false" {
 						continue
 					}
-					if _, e := respuesta["Data"].([]interface{})[0].(map[string]interface{})["dato_plan"]; e {
-						json.Unmarshal([]byte(respuesta["Data"].([]interface{})[0].(map[string]interface{})["dato_plan"].(string)), &datoPlan)
-						if datoPlan[indice] == nil {
-							continue
-						}
+
+					json.Unmarshal([]byte(respuesta["Data"].([]interface{})[0].(map[string]interface{})["dato_plan"].(string)), &datoPlan)
+					if datoPlan[indice] == nil {
+						continue
 					}
 
 					switch {

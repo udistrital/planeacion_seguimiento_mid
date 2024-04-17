@@ -34,7 +34,7 @@ func init() {
 				&controllers.ReporteController{},
 			),
 		),
-		beego.NSNamespace("/estado_trimestre",
+		beego.NSNamespace("/estado-trimestre",
 			beego.NSInclude(
 				&controllers.EstadoTrimestresController{},
 			),

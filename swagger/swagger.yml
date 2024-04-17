@@ -98,10 +98,10 @@ paths:
             $ref: '#/definitions/models.Seguimiento'
         "404":
           description: ""
-  /estado_trimestre/{plan_id}:
+  /estado-trimestre/{plan_id}:
     get:
       tags:
-      - estado_trimestre
+      - estado-trimestre
       description: get Seguimiento de los trimestres correspondientes
       operationId: EstadoTrimestresController.EstadoTrimestres
       parameters:
@@ -115,10 +115,10 @@ paths:
           description: ""
         "404":
           description: not found resource
-  /estado_trimestre/{plan_id}/{trimestre}:
+  /estado-trimestre/{plan_id}/{trimestre}:
     get:
       tags:
-      - estado_trimestre
+      - estado-trimestre
       description: get Seguimiento del trimestre correspondiente
       operationId: EstadoTrimestresController.ConsultarEstadoTrimestre
       parameters:
@@ -533,7 +533,7 @@ tags:
 - name: reporte
   description: |
     ReporteController operations for SeguimientoReportes
-- name: estado_trimestre
+- name: estado-trimestre
   description: |
     EstadoTrimestresController operations for Trimestres
 - name: indicadores

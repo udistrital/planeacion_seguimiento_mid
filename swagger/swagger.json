@@ -145,10 +145,10 @@
                 }
             }
         },
-        "/estado_trimestre/{plan_id}": {
+        "/estado-trimestre/{plan_id}": {
             "get": {
                 "tags": [
-                    "estado_trimestre"
+                    "estado-trimestre"
                 ],
                 "description": "get Seguimiento de los trimestres correspondientes",
                 "operationId": "EstadoTrimestresController.EstadoTrimestres",
@@ -171,10 +171,10 @@
                 }
             }
         },
-        "/estado_trimestre/{plan_id}/{trimestre}": {
+        "/estado-trimestre/{plan_id}/{trimestre}": {
             "get": {
                 "tags": [
-                    "estado_trimestre"
+                    "estado-trimestre"
                 ],
                 "description": "get Seguimiento del trimestre correspondiente",
                 "operationId": "EstadoTrimestresController.ConsultarEstadoTrimestre",
@@ -799,7 +799,7 @@
             "description": "ReporteController operations for SeguimientoReportes\n"
         },
         {
-            "name": "estado_trimestre",
+            "name": "estado-trimestre",
             "description": "EstadoTrimestresController operations for Trimestres\n"
         },
         {
