@@ -24,18 +24,18 @@ func (c *SeguimientoController) URLMapping() {
 // GuardarSeguimiento ...
 // @Title GuardarSeguimiento
 // @Description put Seguimiento by id
-// @Param	plan_id		path 	string	true		"The key for staticblock"
+// @Param	planId		path 	string	true		"The key for staticblock"
 // @Param	index		path 	string	true		"The key for staticblock"
 // @Param	trimestre	path 	string	true		"The key for staticblock"
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
 // @Failure 404
-// @router /:plan_id/:index/:trimestre [put]
+// @router /:planId/:index/:trimestre [put]
 func (c *SeguimientoController) GuardarSeguimiento() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	requestBody := c.Ctx.Input.RequestBody
-	planIdentificador := c.Ctx.Input.Param(":plan_id")
+	planIdentificador := c.Ctx.Input.Param(":planId")
 	indiceActividad := c.Ctx.Input.Param(":index")
 	trimestre := c.Ctx.Input.Param(":trimestre")
 
@@ -52,16 +52,16 @@ func (c *SeguimientoController) GuardarSeguimiento() {
 // ConsultarSeguimiento ...
 // @Title ConsultarSeguimiento
 // @Description get Seguimiento
-// @Param	plan_id 	path 	string	true		"The key for staticblock"
+// @Param	planId 	path 	string	true		"The key for staticblock"
 // @Param	index 	path 	string	true		"The key for staticblock"
 // @Param	trimestre 	path 	string	true		"The key for staticblock"
 // @Success 200
 // @Failure 404
-// @router /:plan_id/:index/:trimestre [get]
+// @router /:planId/:index/:trimestre [get]
 func (c *SeguimientoController) ConsultarSeguimiento() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	planIdentificador := c.Ctx.Input.Param(":plan_id")
+	planIdentificador := c.Ctx.Input.Param(":planId")
 	indiceActividad := c.Ctx.Input.Param(":index")
 	trimestreIdentificador := c.Ctx.Input.Param(":trimestre")
 
@@ -100,16 +100,16 @@ func (c *SeguimientoController) RevisarSeguimiento() {
 // MigrarInformacion ...
 // @Title MigrarInformacion
 // @Description post Segrar la informacion de los seguimientos
-// @Param	plan_id		path 	string	true		"The key for staticblock"
+// @Param	planId		path 	string	true		"The key for staticblock"
 // @Param	trimestre	path 	string	true		"The key for staticblock"
 // @Success 200
 // @Failure 403
 // @Failure 404
-// @router /migracion/:plan_id/:trimestre [post]
+// @router /migracion/:planId/:trimestre [post]
 func (c *SeguimientoController) MigrarInformacion() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	planIdentificador := c.Ctx.Input.Param(":plan_id")
+	planIdentificador := c.Ctx.Input.Param(":planId")
 	trimestre := c.Ctx.Input.Param(":trimestre")
 
 	if resultado, err := services.MigrarInformacion(planIdentificador, trimestre); err == nil {

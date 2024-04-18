@@ -10,7 +10,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"],
         beego.ControllerComments{
             Method: "RetornarActividad",
-            Router: "/:plan_id/:index/:trimestre",
+            Router: "/:planId/:index/:trimestre",
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -19,7 +19,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"],
         beego.ControllerComments{
             Method: "ConsultarActividadesGenerales",
-            Router: "/:seguimiento_id",
+            Router: "/:seguimientoId",
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -28,7 +28,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"],
         beego.ControllerComments{
             Method: "RevisarActividad",
-            Router: "/revision/:plan_id/:index/:trimestre",
+            Router: "/revision/:planId/:index/:trimestre",
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -37,7 +37,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:EstadoTrimestresController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:EstadoTrimestresController"],
         beego.ControllerComments{
             Method: "EstadoTrimestres",
-            Router: "/:plan_id",
+            Router: "/:planId",
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -46,7 +46,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:EstadoTrimestresController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:EstadoTrimestresController"],
         beego.ControllerComments{
             Method: "ConsultarEstadoTrimestre",
-            Router: "/:plan_id/:trimestre",
+            Router: "/:planId/:trimestre",
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -55,7 +55,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:IndicadoresController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:IndicadoresController"],
         beego.ControllerComments{
             Method: "ConsultarIndicadores",
-            Router: "/:plan_id",
+            Router: "/:planId",
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -127,7 +127,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"],
         beego.ControllerComments{
             Method: "GuardarSeguimiento",
-            Router: "/:plan_id/:index/:trimestre",
+            Router: "/:planId/:index/:trimestre",
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -136,7 +136,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"],
         beego.ControllerComments{
             Method: "ConsultarSeguimiento",
-            Router: "/:plan_id/:index/:trimestre",
+            Router: "/:planId/:index/:trimestre",
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -145,7 +145,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"],
         beego.ControllerComments{
             Method: "MigrarInformacion",
-            Router: "/migracion/:plan_id/:trimestre",
+            Router: "/migracion/:planId/:trimestre",
             AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -163,7 +163,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoDetalleController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoDetalleController"],
         beego.ControllerComments{
             Method: "GuardarCualitativo",
-            Router: "/cualitativo/:plan_id/:index/:trimestre",
+            Router: "/cualitativo/:planId/:index/:trimestre",
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -172,7 +172,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoDetalleController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoDetalleController"],
         beego.ControllerComments{
             Method: "GuardarCuantitativo",
-            Router: "/cuantitativo/:plan_id/:index/:trimestre",
+            Router: "/cuantitativo/:planId/:index/:trimestre",
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -181,7 +181,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoDetalleController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoDetalleController"],
         beego.ControllerComments{
             Method: "GuardarDocumentos",
-            Router: "/documento/:plan_id/:index/:trimestre",
+            Router: "/documento/:planId/:index/:trimestre",
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,

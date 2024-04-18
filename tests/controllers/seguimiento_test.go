@@ -8,7 +8,7 @@ import (
 
 // SE NECESITAN DATOS PARA PODER VALIDAR EL CASO
 func TestConsultarSeguimiento(t *testing.T) {
-	if response, err := http.Get("http://localhost:8080/v1/seguimiento/61f08edc25e40c91b0083e4f/1/s"); err == nil {
+	if response, err := http.Get("http://localhost:8080/v1/seguimiento/61f08edc25e40c91b0083e4f/1/635b1f995073f2675157dc7f"); err == nil {
 		if response.StatusCode != 200 {
 			t.Error("Error TestConsultarSeguimiento Se esperaba 200 y se obtuvo", response.StatusCode)
 			t.Fail()

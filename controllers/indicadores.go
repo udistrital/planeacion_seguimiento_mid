@@ -21,16 +21,16 @@ func (c *IndicadoresController) URLMapping() {
 // ConsultarIndicadores ...
 // @Title ConsultarIndicadores
 // @Description get Seguimiento
-// @Param	plan_id 	path 	string	true		"The key for staticblock"
+// @Param	planId 	path 	string	true		"The key for staticblock"
 // @Success 200
 // @Failure 404
-// @router /:plan_id [get]
+// @router /:planId [get]
 func (c *IndicadoresController) ConsultarIndicadores() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	plan_identificador := c.Ctx.Input.Param(":plan_id")
+	planIdentificador := c.Ctx.Input.Param(":planId")
 
-	if resultado, err := services.ConsultarIndicadores(plan_identificador); err == nil {
+	if resultado, err := services.ConsultarIndicadores(planIdentificador); err == nil {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {

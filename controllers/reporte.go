@@ -57,10 +57,10 @@ func (c *ReporteController) HabilitarReportes() {
 func (c *ReporteController) CrearReportes() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	plan_identificador := c.Ctx.Input.Param(":plan")
+	planIdentificador := c.Ctx.Input.Param(":plan")
 	tipo := c.Ctx.Input.Param(":tipo")
 
-	if resultado, err := services.CrearReportes(plan_identificador, tipo); err == nil {
+	if resultado, err := services.CrearReportes(planIdentificador, tipo); err == nil {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {

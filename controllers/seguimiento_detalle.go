@@ -22,17 +22,17 @@ func (c *SeguimientoDetalleController) URLMapping() {
 // GuardarDocumentos ...
 // @Title GuardarDocumentos
 // @Description put Seguimiento by id
-// @Param	plan_id		path 	string	true		"The key for staticblock"
+// @Param	planId		path 	string	true		"The key for staticblock"
 // @Param	index		path 	string	true		"The key for staticblock"
 // @Param	trimestre	path 	string	true		"The key for staticblock"
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
-// @router /documento/:plan_id/:index/:trimestre [put]
+// @router /documento/:planId/:index/:trimestre [put]
 func (c *SeguimientoDetalleController) GuardarDocumentos() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	requestBody := c.Ctx.Input.RequestBody
-	planIdentificador := c.Ctx.Input.Param(":plan_id")
+	planIdentificador := c.Ctx.Input.Param(":planId")
 	indiceActividad := c.Ctx.Input.Param(":index")
 	trimestre := c.Ctx.Input.Param(":trimestre")
 
@@ -50,16 +50,16 @@ func (c *SeguimientoDetalleController) GuardarDocumentos() {
 // GuardarCualitativo ...
 // @Title GuardarCualitativo
 // @Description put Seguimiento by id
-// @Param	plan_id		path 	string	true		"The key for staticblock"
+// @Param	planId		path 	string	true		"The key for staticblock"
 // @Param	index		path 	string	true		"The key for staticblock"
 // @Param	trimestre	path 	string	true		"The key for staticblock"
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
-// @router /cualitativo/:plan_id/:index/:trimestre [put]
+// @router /cualitativo/:planId/:index/:trimestre [put]
 func (c *SeguimientoDetalleController) GuardarCualitativo() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	planIdentificador := c.Ctx.Input.Param(":plan_id")
+	planIdentificador := c.Ctx.Input.Param(":planId")
 	indiceActividad := c.Ctx.Input.Param(":index")
 	trimestre := c.Ctx.Input.Param(":trimestre")
 
@@ -77,16 +77,16 @@ func (c *SeguimientoDetalleController) GuardarCualitativo() {
 // GuardarCuantitativo ...
 // @Title GuardarCuantitativo
 // @Description put Seguimiento by id
-// @Param	plan_id		path 	string	true		"The key for staticblock"
+// @Param	planId		path 	string	true		"The key for staticblock"
 // @Param	index		path 	string	true		"The key for staticblock"
 // @Param	trimestre	path 	string	true		"The key for staticblock"
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
-// @router /cuantitativo/:plan_id/:index/:trimestre [put]
+// @router /cuantitativo/:planId/:index/:trimestre [put]
 func (c *SeguimientoDetalleController) GuardarCuantitativo() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	planIdentificador := c.Ctx.Input.Param(":plan_id")
+	planIdentificador := c.Ctx.Input.Param(":planId")
 	indiceActividad := c.Ctx.Input.Param(":index")
 	trimestre := c.Ctx.Input.Param(":trimestre")
 

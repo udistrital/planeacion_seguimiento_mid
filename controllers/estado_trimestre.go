@@ -22,14 +22,14 @@ func (c *EstadoTrimestresController) URLMapping() {
 // EstadoTrimestres ...
 // @Title EstadoTrimestres
 // @Description get Seguimiento de los trimestres correspondientes
-// @Param	plan_id 	path 	string	true		"The key for staticblock"
+// @Param	planId 	path 	string	true		"The key for staticblock"
 // @Success 200
 // @Failure 404 not found resource
-// @router /:plan_id [get]
+// @router /:planId [get]
 func (c *EstadoTrimestresController) EstadoTrimestres() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	planId := c.Ctx.Input.Param(":plan_id")
+	planId := c.Ctx.Input.Param(":planId")
 
 	if resultado, err := services.EstadoTrimestres(planId); err == nil {
 		c.Ctx.Output.SetStatus(200)
@@ -44,16 +44,16 @@ func (c *EstadoTrimestresController) EstadoTrimestres() {
 // ConsultarEstadoTrimestre ...
 // @Title ConsultarEstadoTrimestre
 // @Description get Seguimiento del trimestre correspondiente
-// @Param	plan_id 	path 	string	true		"The key for staticblock"
+// @Param	planId 	path 	string	true		"The key for staticblock"
 // @Param	trimestre 	path 	string	true		"The key for staticblock"
 // @Success 200
 // @Failure 403
 // @Failure 404 not found resource
-// @router /:plan_id/:trimestre [get]
+// @router /:planId/:trimestre [get]
 func (c *EstadoTrimestresController) ConsultarEstadoTrimestre() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	planIdentificador := c.Ctx.Input.Param(":plan_id")
+	planIdentificador := c.Ctx.Input.Param(":planId")
 	trimestre := c.Ctx.Input.Param(":trimestre")
 
 	if resultado, err := services.ConsultarEstadoTrimestre(planIdentificador, trimestre); err == nil {
