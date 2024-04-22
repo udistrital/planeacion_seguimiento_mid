@@ -1,8 +1,7 @@
 swagger: "2.0"
 info:
   title: beego Test API
-  description: |
-    beego has a very cool tools to autogenerate documents for your API
+  description: beego has a very cool tools to autogenerate documents for your API
   version: 1.0.0
   termsOfService: http://beego.me/
   contact:
@@ -12,14 +11,194 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
 basePath: /v1
 paths:
-  /seguimiento/habilitar_reportes:
+  /actividades/{planId}/{index}/{trimestre}:
     put:
       tags:
-      - seguimiento
-      description: |-
-        put Seguimiento
-        <br>
-      operationId: SeguimientoController.HabilitarReportes
+      - actividades
+      description: Retorna la actividad de Avalado a en Revision
+      operationId: ActividadesController.RetornarActividad
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "404":
+          description: ""
+  /actividades/{seguimientoId}:
+    get:
+      tags:
+      - actividades
+      description: get Seguimiento
+      operationId: ActividadesController.ConsultarActividadesGenerales
+      parameters:
+      - in: path
+        name: seguimientoId
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+        "404":
+          description: ""
+  /actividades/revision/{planId}/{index}/{trimestre}:
+    put:
+      tags:
+      - actividades
+      description: put Seguimiento by id
+      operationId: ActividadesController.RevisarActividad
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "404":
+          description: ""
+  /estado-trimestre/{planId}:
+    get:
+      tags:
+      - estado-trimestre
+      description: get Seguimiento de los trimestres correspondientes
+      operationId: EstadoTrimestresController.EstadoTrimestres
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+        "404":
+          description: not found resource
+  /estado-trimestre/{planId}/{trimestre}:
+    get:
+      tags:
+      - estado-trimestre
+      description: get Seguimiento del trimestre correspondiente
+      operationId: EstadoTrimestresController.ConsultarEstadoTrimestre
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+        "403":
+          description: ""
+        "404":
+          description: not found resource
+  /indicadores/{planId}:
+    get:
+      tags:
+      - indicadores
+      description: get Seguimiento
+      operationId: IndicadoresController.ConsultarIndicadores
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+        "404":
+          description: ""
+  /indicadores/avance:
+    post:
+      tags:
+      - indicadores
+      description: post Seguimiento by id
+      operationId: IndicadoresController.ConsultarAvanceIndicador
+      parameters:
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "404":
+          description: ""
+  /periodos/{vigencia}:
+    get:
+      tags:
+      - periodos
+      description: get Seguimiento
+      operationId: PeriodosController.ConsultarPeriodos
+      parameters:
+      - in: path
+        name: vigencia
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+        "404":
+          description: ""
+  /reporte/:
+    put:
+      tags:
+      - reporte
+      description: put Seguimiento
+      operationId: ReporteController.HabilitarReportes
       parameters:
       - in: body
         name: body
@@ -30,13 +209,336 @@ paths:
       responses:
         "200":
           description: ""
+        "404":
+          description: ""
+  /reporte/{plan}/{tipo}:
+    post:
+      tags:
+      - reporte
+      description: Post Seguimiento
+      operationId: ReporteController.CrearReportes
+      parameters:
+      - in: path
+        name: plan
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: tipo
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+        "404":
+          description: ""
+  /reporte/actividad/{index}:
+    put:
+      tags:
+      - reporte
+      description: put Seguimiento by id
+      operationId: ReporteController.ReportarActividad
+      parameters:
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "404":
+          description: ""
+  /reporte/seguimiento/{id}:
+    put:
+      tags:
+      - reporte
+      description: put Seguimiento by id
+      operationId: ReporteController.ReportarSeguimiento
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "404":
+          description: ""
+  /seguimiento-detalle/cualitativo/{planId}/{index}/{trimestre}:
+    put:
+      tags:
+      - seguimiento-detalle
+      description: put Seguimiento by id
+      operationId: SeguimientoDetalleController.GuardarCualitativo
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+  /seguimiento-detalle/cuantitativo/{planId}/{index}/{trimestre}:
+    put:
+      tags:
+      - seguimiento-detalle
+      description: put Seguimiento by id
+      operationId: SeguimientoDetalleController.GuardarCuantitativo
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+  /seguimiento-detalle/documento/{planId}/{index}/{trimestre}:
+    put:
+      tags:
+      - seguimiento-detalle
+      description: put Seguimiento by id
+      operationId: SeguimientoDetalleController.GuardarDocumentos
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+  /seguimiento/{id}:
+    put:
+      tags:
+      - seguimiento
+      description: put Seguimiento by id
+      operationId: SeguimientoController.RevisarSeguimiento
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "404":
+          description: :id is empty
+  /seguimiento/{planId}/{index}/{trimestre}:
+    get:
+      tags:
+      - seguimiento
+      description: get Seguimiento
+      operationId: SeguimientoController.ConsultarSeguimiento
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+        "404":
+          description: ""
+    put:
+      tags:
+      - seguimiento
+      description: put Seguimiento by id
+      operationId: SeguimientoController.GuardarSeguimiento
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "404":
+          description: ""
+  /seguimiento/migracion/{planId}/{trimestre}:
+    post:
+      tags:
+      - seguimiento
+      description: post Segrar la informacion de los seguimientos
+      operationId: SeguimientoController.MigrarInformacion
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
         "403":
+          description: ""
+        "404":
+          description: ""
+  /seguimiento/verificacion/{id}:
+    put:
+      tags:
+      - seguimiento
+      description: put Seguimiento by id
+      operationId: SeguimientoController.VerificarSeguimiento
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "403":
+          description: ""
+        "404":
           description: ""
 definitions:
   '{}':
     title: '{}'
     type: object
+  models.Seguimiento:
+    title: Seguimiento
+    type: object
 tags:
 - name: seguimiento
   description: |
     SeguimientoController operations for Seguimiento
+- name: seguimiento-detalle
+  description: |
+    SeguimientoDetalleController operations for SeguimientoDetalle
+- name: actividades
+  description: |
+    ActividadesController operations for ActividadesSeguimiento
+- name: reporte
+  description: |
+    ReporteController operations for SeguimientoReportes
+- name: estado-trimestre
+  description: |
+    EstadoTrimestresController operations for Trimestres
+- name: indicadores
+  description: |
+    IndicadoresController operations for Indicadores
+- name: periodos
+  description: |
+    PeriodosController operations for Periodos

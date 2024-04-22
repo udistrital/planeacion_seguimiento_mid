@@ -19,6 +19,36 @@ func init() {
 				&controllers.SeguimientoController{},
 			),
 		),
+		beego.NSNamespace("/seguimiento-detalle",
+			beego.NSInclude(
+				&controllers.SeguimientoDetalleController{},
+			),
+		),
+		beego.NSNamespace("/actividades",
+			beego.NSInclude(
+				&controllers.ActividadesController{},
+			),
+		),
+		beego.NSNamespace("/reporte",
+			beego.NSInclude(
+				&controllers.ReporteController{},
+			),
+		),
+		beego.NSNamespace("/estado-trimestre",
+			beego.NSInclude(
+				&controllers.EstadoTrimestresController{},
+			),
+		),
+		beego.NSNamespace("/indicadores",
+			beego.NSInclude(
+				&controllers.IndicadoresController{},
+			),
+		),
+		beego.NSNamespace("/periodos",
+			beego.NSInclude(
+				&controllers.PeriodosController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
