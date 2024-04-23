@@ -48,9 +48,10 @@ steps:
     - push
 
 - name: go_build
-  image: golang:1.17
+  image: golang:1.18
   commands:
   - go mod init
+  - go mod tidy
   - go get -t
   - GOOS=linux GOARCH=amd64 go build -o main
   when:
