@@ -1,4 +1,4 @@
-# planeacion_mid 
+# planeacion_mid  
 Api Mid para el sistema de planeación universidad Distrital
 ## Especificaciones Técnicas
 
