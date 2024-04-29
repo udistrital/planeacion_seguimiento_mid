@@ -7,13 +7,13 @@ import (
 	"github.com/udistrital/utils_oas/requestresponse"
 )
 
-// SeguimientoDetalleController operations for SeguimientoDetalle
-type SeguimientoDetalleController struct {
+// DetallesController operations for SeguimientoDetalle
+type DetallesController struct {
 	beego.Controller
 }
 
 // URLMapping ...
-func (c *SeguimientoDetalleController) URLMapping() {
+func (c *DetallesController) URLMapping() {
 	c.Mapping("GuardarDocumentos", c.GuardarDocumentos)
 	c.Mapping("GuardarCualitativo", c.GuardarCualitativo)
 	c.Mapping("GuardarCuantitativo", c.GuardarCuantitativo)
@@ -28,7 +28,7 @@ func (c *SeguimientoDetalleController) URLMapping() {
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
 // @router /documento/:planId/:index/:trimestre [put]
-func (c *SeguimientoDetalleController) GuardarDocumentos() {
+func (c *DetallesController) GuardarDocumentos() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	requestBody := c.Ctx.Input.RequestBody
@@ -56,7 +56,7 @@ func (c *SeguimientoDetalleController) GuardarDocumentos() {
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
 // @router /cualitativo/:planId/:index/:trimestre [put]
-func (c *SeguimientoDetalleController) GuardarCualitativo() {
+func (c *DetallesController) GuardarCualitativo() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	planIdentificador := c.Ctx.Input.Param(":planId")
@@ -83,7 +83,7 @@ func (c *SeguimientoDetalleController) GuardarCualitativo() {
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
 // @router /cuantitativo/:planId/:index/:trimestre [put]
-func (c *SeguimientoDetalleController) GuardarCuantitativo() {
+func (c *DetallesController) GuardarCuantitativo() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	planIdentificador := c.Ctx.Input.Param(":planId")

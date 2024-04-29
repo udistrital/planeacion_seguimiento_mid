@@ -15,13 +15,13 @@
     },
     "basePath": "/v1",
     "paths": {
-        "/actividades/revision/{planId}/{index}/{trimestre}": {
+        "/actividades/retornar/{planId}/{index}/{trimestre}": {
             "put": {
                 "tags": [
                     "actividades"
                 ],
-                "description": "put Seguimiento by id",
-                "operationId": "ActividadesController.RevisarActividad",
+                "description": "Retorna la actividad de Avalado a en Revision",
+                "operationId": "ActividadesController.RetornarActividad",
                 "parameters": [
                     {
                         "in": "path",
@@ -67,13 +67,13 @@
                 }
             }
         },
-        "/actividades/{planId}/{index}/{trimestre}": {
+        "/actividades/revision/{planId}/{index}/{trimestre}": {
             "put": {
                 "tags": [
                     "actividades"
                 ],
-                "description": "Retorna la actividad de Avalado a en Revision",
-                "operationId": "ActividadesController.RetornarActividad",
+                "description": "put Seguimiento by id",
+                "operationId": "ActividadesController.RevisarActividad",
                 "parameters": [
                     {
                         "in": "path",
@@ -145,13 +145,13 @@
                 }
             }
         },
-        "/estado-trimestre/{planId}": {
-            "get": {
+        "/detalles/cualitativo/{planId}/{index}/{trimestre}": {
+            "put": {
                 "tags": [
-                    "estado-trimestre"
+                    "detalles"
                 ],
-                "description": "get Seguimiento de los trimestres correspondientes",
-                "operationId": "EstadoTrimestresController.EstadoTrimestres",
+                "description": "put Seguimiento by id",
+                "operationId": "DetallesController.GuardarCualitativo",
                 "parameters": [
                     {
                         "in": "path",
@@ -159,29 +159,10 @@
                         "description": "The key for staticblock",
                         "required": true,
                         "type": "string"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": ""
                     },
-                    "404": {
-                        "description": "not found resource"
-                    }
-                }
-            }
-        },
-        "/estado-trimestre/{planId}/{trimestre}": {
-            "get": {
-                "tags": [
-                    "estado-trimestre"
-                ],
-                "description": "get Seguimiento del trimestre correspondiente",
-                "operationId": "EstadoTrimestresController.ConsultarEstadoTrimestre",
-                "parameters": [
                     {
                         "in": "path",
-                        "name": "planId",
+                        "name": "index",
                         "description": "The key for staticblock",
                         "required": true,
                         "type": "string"
@@ -192,17 +173,121 @@
                         "description": "The key for staticblock",
                         "required": true,
                         "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Plan content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Seguimiento"
+                        }
+                    }
+                }
+            }
+        },
+        "/detalles/cuantitativo/{planId}/{index}/{trimestre}": {
+            "put": {
+                "tags": [
+                    "detalles"
+                ],
+                "description": "put Seguimiento by id",
+                "operationId": "DetallesController.GuardarCuantitativo",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "planId",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
                     },
-                    "403": {
-                        "description": ""
+                    {
+                        "in": "path",
+                        "name": "index",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
                     },
-                    "404": {
-                        "description": "not found resource"
+                    {
+                        "in": "path",
+                        "name": "trimestre",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Plan content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Seguimiento"
+                        }
+                    }
+                }
+            }
+        },
+        "/detalles/documento/{planId}/{index}/{trimestre}": {
+            "put": {
+                "tags": [
+                    "detalles"
+                ],
+                "description": "put Seguimiento by id",
+                "operationId": "DetallesController.GuardarDocumentos",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "planId",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "index",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "trimestre",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Plan content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Seguimiento"
+                        }
                     }
                 }
             }
@@ -290,41 +375,13 @@
                 }
             }
         },
-        "/reporte/": {
+        "/reportes/actividad/{index}": {
             "put": {
                 "tags": [
-                    "reporte"
-                ],
-                "description": "put Seguimiento",
-                "operationId": "ReporteController.HabilitarReportes",
-                "parameters": [
-                    {
-                        "in": "body",
-                        "name": "body",
-                        "description": "body for Plan content",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/{}"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": ""
-                    },
-                    "404": {
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/reporte/actividad/{index}": {
-            "put": {
-                "tags": [
-                    "reporte"
+                    "reportes"
                 ],
                 "description": "put Seguimiento by id",
-                "operationId": "ReporteController.ReportarActividad",
+                "operationId": "ReportesController.ReportarActividad",
                 "parameters": [
                     {
                         "in": "path",
@@ -356,13 +413,41 @@
                 }
             }
         },
-        "/reporte/seguimiento/{id}": {
+        "/reportes/habilitar": {
             "put": {
                 "tags": [
-                    "reporte"
+                    "reportes"
+                ],
+                "description": "put Seguimiento",
+                "operationId": "ReportesController.HabilitarReportes",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Plan content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/reportes/seguimiento/{id}": {
+            "put": {
+                "tags": [
+                    "reportes"
                 ],
                 "description": "put Seguimiento by id",
-                "operationId": "ReporteController.ReportarSeguimiento",
+                "operationId": "ReportesController.ReportarSeguimiento",
                 "parameters": [
                     {
                         "in": "path",
@@ -394,13 +479,13 @@
                 }
             }
         },
-        "/reporte/{plan}/{tipo}": {
+        "/reportes/{plan}/{tipo}": {
             "post": {
                 "tags": [
-                    "reporte"
+                    "reportes"
                 ],
                 "description": "Post Seguimiento",
-                "operationId": "ReporteController.CrearReportes",
+                "operationId": "ReportesController.CrearReportes",
                 "parameters": [
                     {
                         "in": "path",
@@ -419,189 +504,6 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": ""
-                    },
-                    "404": {
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/seguimiento-detalle/cualitativo/{planId}/{index}/{trimestre}": {
-            "put": {
-                "tags": [
-                    "seguimiento-detalle"
-                ],
-                "description": "put Seguimiento by id",
-                "operationId": "SeguimientoDetalleController.GuardarCualitativo",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "planId",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "path",
-                        "name": "index",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "path",
-                        "name": "trimestre",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "body",
-                        "name": "body",
-                        "description": "body for Plan content",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/{}"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "schema": {
-                            "$ref": "#/definitions/models.Seguimiento"
-                        }
-                    }
-                }
-            }
-        },
-        "/seguimiento-detalle/cuantitativo/{planId}/{index}/{trimestre}": {
-            "put": {
-                "tags": [
-                    "seguimiento-detalle"
-                ],
-                "description": "put Seguimiento by id",
-                "operationId": "SeguimientoDetalleController.GuardarCuantitativo",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "planId",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "path",
-                        "name": "index",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "path",
-                        "name": "trimestre",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "body",
-                        "name": "body",
-                        "description": "body for Plan content",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/{}"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "schema": {
-                            "$ref": "#/definitions/models.Seguimiento"
-                        }
-                    }
-                }
-            }
-        },
-        "/seguimiento-detalle/documento/{planId}/{index}/{trimestre}": {
-            "put": {
-                "tags": [
-                    "seguimiento-detalle"
-                ],
-                "description": "put Seguimiento by id",
-                "operationId": "SeguimientoDetalleController.GuardarDocumentos",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "planId",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "path",
-                        "name": "index",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "path",
-                        "name": "trimestre",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "body",
-                        "name": "body",
-                        "description": "body for Plan content",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/{}"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "schema": {
-                            "$ref": "#/definitions/models.Seguimiento"
-                        }
-                    }
-                }
-            }
-        },
-        "/seguimiento/migracion/{planId}/{trimestre}": {
-            "post": {
-                "tags": [
-                    "seguimiento"
-                ],
-                "description": "post Segrar la informacion de los seguimientos",
-                "operationId": "SeguimientoController.MigrarInformacion",
-                "parameters": [
-                    {
-                        "in": "path",
-                        "name": "planId",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    },
-                    {
-                        "in": "path",
-                        "name": "trimestre",
-                        "description": "The key for staticblock",
-                        "required": true,
-                        "type": "string"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": ""
-                    },
-                    "403": {
                         "description": ""
                     },
                     "404": {
@@ -651,7 +553,7 @@
                 }
             }
         },
-        "/seguimiento/{id}": {
+        "/seguimiento/{id}/revision": {
             "put": {
                 "tags": [
                     "seguimiento"
@@ -680,7 +582,33 @@
                 }
             }
         },
-        "/seguimiento/{planId}/{index}/{trimestre}": {
+        "/seguimiento/{planId}/estado": {
+            "get": {
+                "tags": [
+                    "seguimiento"
+                ],
+                "description": "get Seguimiento de los trimestres correspondientes",
+                "operationId": "SeguimientoController.EstadoTrimestres",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "planId",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "not found resource"
+                    }
+                }
+            }
+        },
+        "/seguimiento/{planId}/{indiceActividad}/{trimestreId}": {
             "get": {
                 "tags": [
                     "seguimiento"
@@ -697,14 +625,14 @@
                     },
                     {
                         "in": "path",
-                        "name": "index",
+                        "name": "indiceActividad",
                         "description": "The key for staticblock",
                         "required": true,
                         "type": "string"
                     },
                     {
                         "in": "path",
-                        "name": "trimestre",
+                        "name": "trimestreId",
                         "description": "The key for staticblock",
                         "required": true,
                         "type": "string"
@@ -735,14 +663,14 @@
                     },
                     {
                         "in": "path",
-                        "name": "index",
+                        "name": "indiceActividad",
                         "description": "The key for staticblock",
                         "required": true,
                         "type": "string"
                     },
                     {
                         "in": "path",
-                        "name": "trimestre",
+                        "name": "trimestreId",
                         "description": "The key for staticblock",
                         "required": true,
                         "type": "string"
@@ -769,6 +697,78 @@
                     }
                 }
             }
+        },
+        "/seguimiento/{planId}/{trimestreId}/migracion": {
+            "post": {
+                "tags": [
+                    "seguimiento"
+                ],
+                "description": "post Segrar la informacion de los seguimientos",
+                "operationId": "SeguimientoController.MigrarInformacion",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "planId",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "trimestreId",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "403": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/seguimiento/{planId}/{trimestre}/estado": {
+            "get": {
+                "tags": [
+                    "seguimiento"
+                ],
+                "description": "get Seguimiento del trimestre correspondiente",
+                "operationId": "SeguimientoController.ConsultarEstadoTrimestre",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "planId",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "trimestre",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "403": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": "not found resource"
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -787,20 +787,16 @@
             "description": "SeguimientoController operations for Seguimiento\n"
         },
         {
-            "name": "seguimiento-detalle",
-            "description": "SeguimientoDetalleController operations for SeguimientoDetalle\n"
+            "name": "detalles",
+            "description": "DetallesController operations for SeguimientoDetalle\n"
         },
         {
             "name": "actividades",
             "description": "ActividadesController operations for ActividadesSeguimiento\n"
         },
         {
-            "name": "reporte",
-            "description": "ReporteController operations for SeguimientoReportes\n"
-        },
-        {
-            "name": "estado-trimestre",
-            "description": "EstadoTrimestresController operations for Trimestres\n"
+            "name": "reportes",
+            "description": "ReportesController operations for SeguimientoReportes\n"
         },
         {
             "name": "indicadores",
