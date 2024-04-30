@@ -19,27 +19,29 @@ func (c *SeguimientoController) URLMapping() {
 	c.Mapping("GuardarSeguimiento", c.GuardarSeguimiento)
 	c.Mapping("VerificarSeguimiento", c.VerificarSeguimiento)
 	c.Mapping("MigrarInformacion", c.MigrarInformacion)
+	c.Mapping("ConsultarEstadoTrimestre", c.ConsultarEstadoTrimestre)
+	c.Mapping("EstadoTrimestres", c.EstadoTrimestres)
 }
 
 // GuardarSeguimiento ...
 // @Title GuardarSeguimiento
 // @Description put Seguimiento by id
 // @Param	planId		path 	string	true		"The key for staticblock"
-// @Param	index		path 	string	true		"The key for staticblock"
-// @Param	trimestre	path 	string	true		"The key for staticblock"
+// @Param	indiceActividad		path 	string	true		"The key for staticblock"
+// @Param	trimestreId	path 	string	true		"The key for staticblock"
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
 // @Failure 404
-// @router /:planId/:index/:trimestre [put]
+// @router /:planId/:indiceActividad/:trimestreId [put]
 func (c *SeguimientoController) GuardarSeguimiento() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	requestBody := c.Ctx.Input.RequestBody
 	planIdentificador := c.Ctx.Input.Param(":planId")
-	indiceActividad := c.Ctx.Input.Param(":index")
-	trimestre := c.Ctx.Input.Param(":trimestre")
+	indiceActividad := c.Ctx.Input.Param(":indiceActividad")
+	trimestreId := c.Ctx.Input.Param(":trimestreId")
 
-	if resultado, err := services.GuardarSeguimiento(requestBody, planIdentificador, indiceActividad, trimestre); err == nil {
+	if resultado, err := services.GuardarSeguimiento(requestBody, planIdentificador, indiceActividad, trimestreId); err == nil {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
@@ -52,20 +54,20 @@ func (c *SeguimientoController) GuardarSeguimiento() {
 // ConsultarSeguimiento ...
 // @Title ConsultarSeguimiento
 // @Description get Seguimiento
-// @Param	planId 	path 	string	true		"The key for staticblock"
-// @Param	index 	path 	string	true		"The key for staticblock"
-// @Param	trimestre 	path 	string	true		"The key for staticblock"
+// @Param	planId 				path 	string	true		"The key for staticblock"
+// @Param	indiceActividad 	path 	string	true		"The key for staticblock"
+// @Param	trimestreId 		path 	string	true		"The key for staticblock"
 // @Success 200
 // @Failure 404
-// @router /:planId/:index/:trimestre [get]
+// @router /:planId/:indiceActividad/:trimestreId [get]
 func (c *SeguimientoController) ConsultarSeguimiento() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	planIdentificador := c.Ctx.Input.Param(":planId")
-	indiceActividad := c.Ctx.Input.Param(":index")
-	trimestreIdentificador := c.Ctx.Input.Param(":trimestre")
+	indiceActividad := c.Ctx.Input.Param(":indiceActividad")
+	trimestreIdIdentificador := c.Ctx.Input.Param(":trimestreId")
 
-	if resultado, err := services.ConsultarSeguimiento(planIdentificador, indiceActividad, trimestreIdentificador); err == nil {
+	if resultado, err := services.ConsultarSeguimiento(planIdentificador, indiceActividad, trimestreIdIdentificador); err == nil {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
@@ -81,7 +83,7 @@ func (c *SeguimientoController) ConsultarSeguimiento() {
 // @Param	id		path 	string	true		"The key for staticblock"
 // @Success 200 {object} models.Seguimiento
 // @Failure 404 :id is empty
-// @router /:id [put]
+// @router /:id/revision [put]
 func (c *SeguimientoController) RevisarSeguimiento() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
@@ -101,18 +103,18 @@ func (c *SeguimientoController) RevisarSeguimiento() {
 // @Title MigrarInformacion
 // @Description post Segrar la informacion de los seguimientos
 // @Param	planId		path 	string	true		"The key for staticblock"
-// @Param	trimestre	path 	string	true		"The key for staticblock"
+// @Param	trimestreId	path 	string	true		"The key for staticblock"
 // @Success 200
 // @Failure 403
 // @Failure 404
-// @router /migracion/:planId/:trimestre [post]
+// @router /:planId/:trimestreId/migracion [post]
 func (c *SeguimientoController) MigrarInformacion() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	planIdentificador := c.Ctx.Input.Param(":planId")
-	trimestre := c.Ctx.Input.Param(":trimestre")
+	trimestreId := c.Ctx.Input.Param(":trimestreId")
 
-	if resultado, err := services.MigrarInformacion(planIdentificador, trimestre); err == nil {
+	if resultado, err := services.MigrarInformacion(planIdentificador, trimestreId); err == nil {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
@@ -137,6 +139,54 @@ func (c *SeguimientoController) VerificarSeguimiento() {
 	idSeguimiento := c.Ctx.Input.Param(":id")
 
 	if resultado, err := services.VerificarSeguimiento(idSeguimiento); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+	}
+
+	c.ServeJSON()
+}
+
+// EstadoTrimestres ...
+// @Title EstadoTrimestres
+// @Description get Seguimiento de los trimestres correspondientes
+// @Param	planId 	path 	string	true		"The key for staticblock"
+// @Success 200
+// @Failure 404 not found resource
+// @router /:planId/estado [get]
+func (c *SeguimientoController) EstadoTrimestres() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	planId := c.Ctx.Input.Param(":planId")
+
+	if resultado, err := services.EstadoTrimestres(planId); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+	}
+	c.ServeJSON()
+}
+
+// ConsultarEstadoTrimestre ...
+// @Title ConsultarEstadoTrimestre
+// @Description get Seguimiento del trimestre correspondiente
+// @Param	planId 	path 	string	true		"The key for staticblock"
+// @Param	trimestre 	path 	string	true		"The key for staticblock"
+// @Success 200
+// @Failure 403
+// @Failure 404 not found resource
+// @router /:planId/:trimestre/estado [get]
+func (c *SeguimientoController) ConsultarEstadoTrimestre() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	planIdentificador := c.Ctx.Input.Param(":planId")
+	trimestre := c.Ctx.Input.Param(":trimestre")
+
+	if resultado, err := services.ConsultarEstadoTrimestre(planIdentificador, trimestre); err == nil {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
