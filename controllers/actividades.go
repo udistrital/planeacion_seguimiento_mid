@@ -17,6 +17,7 @@ func (c *ActividadesController) URLMapping() {
 	c.Mapping("ConsultarActividadesGenerales", c.ConsultarActividadesGenerales)
 	c.Mapping("RetornarActividad", c.RetornarActividad)
 	c.Mapping("RevisarActividad", c.RevisarActividad)
+
 }
 
 // ConsultarActividadesGenerales ...
@@ -77,7 +78,7 @@ func (c *ActividadesController) RevisarActividad() {
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200 {object} models.Seguimiento
 // @Failure 404
-// @router /:planId/:index/:trimestre [put]
+// @router /retornar/:planId/:index/:trimestre [put]
 func (c *ActividadesController) RetornarActividad() {
 	defer errorhandler.HandlePanic(&c.Controller)
 

@@ -9,13 +9,13 @@ import (
 	"github.com/udistrital/utils_oas/requestresponse"
 )
 
-// ReporteController operations for SeguimientoReportes
-type ReporteController struct {
+// ReportesController operations for SeguimientoReportes
+type ReportesController struct {
 	beego.Controller
 }
 
 // URLMapping ...
-func (c *ReporteController) URLMapping() {
+func (c *ReportesController) URLMapping() {
 	c.Mapping("CrearReportes", c.CrearReportes)
 	c.Mapping("HabilitarReportes", c.HabilitarReportes)
 	c.Mapping("ReportarSeguimiento", c.ReportarSeguimiento)
@@ -28,8 +28,8 @@ func (c *ReporteController) URLMapping() {
 // @Param	body		body 	{}	true		"body for Plan content"
 // @Success 200
 // @Failure 404
-// @router / [put]
-func (c *ReporteController) HabilitarReportes() {
+// @router /habilitar [put]
+func (c *ReportesController) HabilitarReportes() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	var entrada map[string]interface{}
@@ -54,7 +54,7 @@ func (c *ReporteController) HabilitarReportes() {
 // @Success 200
 // @Failure 404
 // @router /:plan/:tipo [post]
-func (c *ReporteController) CrearReportes() {
+func (c *ReportesController) CrearReportes() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	planIdentificador := c.Ctx.Input.Param(":plan")
@@ -78,7 +78,7 @@ func (c *ReporteController) CrearReportes() {
 // @Success 200 {object} models.Seguimiento
 // @Failure 404
 // @router /seguimiento/:id [put]
-func (c *ReporteController) ReportarSeguimiento() {
+func (c *ReportesController) ReportarSeguimiento() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	identificadorSeguimiento := c.Ctx.Input.Param(":id")
@@ -101,7 +101,7 @@ func (c *ReporteController) ReportarSeguimiento() {
 // @Success 200 {object} models.Seguimiento
 // @Failure 404
 // @router /actividad/:index [put]
-func (c *ReporteController) ReportarActividad() {
+func (c *ReportesController) ReportarActividad() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
 	if resultado, err := services.ReportarActividad(c.Ctx.Input.RequestBody, c.Ctx.Input.Param(":index")); err == nil {
