@@ -166,7 +166,7 @@ func GuardarCualitativo(requestBody []byte, planIdentificador string, indiceActi
 					if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 						request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 						detalle = planeacion.ConvertirStringJson(detalle)
-						estado = planeacion.StringAJson(detalle["estado"].(string))
+						estado = detalle["estado"].(map[string]interface{})
 					} else {
 						logs.Error("Error --> ", err)
 						return nil, errors.New(err.Error())
@@ -280,7 +280,7 @@ func GuardarCuantitativo(requestBody []byte, planIdentificador string, indiceAct
 					if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 						request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 						detalle = planeacion.ConvertirStringJson(detalle)
-						estado = planeacion.StringAJson(detalle["estado"].(string))
+						estado = detalle["estado"].(map[string]interface{})
 					}
 				} else {
 					estado = dato[indiceActividad].(map[string]interface{})["estado"].(map[string]interface{})

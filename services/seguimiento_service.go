@@ -313,7 +313,7 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 						evidenciaSeg = detalle["evidencia"].([]map[string]interface{})
 					}
 
-					if len(planeacion.StringAJson(detalle["estado"].(string))) == 0 {
+					if len(detalle["estado"].(map[string]interface{})) == 0 {
 						if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:SRE", &respuestaEstado); err == nil {
 							estado = map[string]interface{}{
 								"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
@@ -321,7 +321,7 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 							}
 						}
 					} else {
-						estado = planeacion.StringAJson(detalle["estado"].(string))
+						estado = detalle["estado"].(map[string]interface{})
 					}
 				}
 			}
@@ -646,7 +646,7 @@ func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, error)
 										if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+elemento.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 											request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 											detalle = planeacion.ConvertirStringJson(detalle)
-											estado = planeacion.StringAJson(detalle["estado"].(string))
+											estado = detalle["estado"].(map[string]interface{})
 											if estado["nombre"] != "Actividad avalada" && estado["nombre"] != "Con observaciones" {
 												dato[indiceActividad] = actividad["dato"]
 											}
@@ -662,7 +662,7 @@ func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, error)
 									if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+elemento.(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 										request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 										detalle = planeacion.ConvertirStringJson(detalle)
-										estado = planeacion.StringAJson(detalle["estado"].(string))
+										estado = detalle["estado"].(map[string]interface{})
 										if estado["nombre"] != "Actividad avalada" && estado["nombre"] != "Con observaciones" {
 											dato[indiceActividad] = actividad["dato"]
 										}
