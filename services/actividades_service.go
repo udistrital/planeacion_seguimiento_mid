@@ -235,7 +235,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 			return nil, errors.New(err.Error())
 		}
 
-		if planeacion.StringAJson(detalle["estado"].(string))["id"] == idActividadAvalada {
+		if detalle["estado"].(map[string]interface{})["id"] == idActividadAvalada {
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:OAPC", &respuestaEstado); err == nil {
 				estado = map[string]interface{}{
 					"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],

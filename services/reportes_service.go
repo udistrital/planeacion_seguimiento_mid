@@ -479,7 +479,7 @@ func actividadReportable(seguimiento map[string]interface{}, indiceActividad str
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 				request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
 				detalle = planeacion.ConvertirStringJson(detalle)
-				estado = planeacion.StringAJson(detalle["estado"].(string))
+				estado = detalle["estado"].(map[string]interface{})
 				cualitativo = detalle["cualitativo"]
 				cuantitativo = detalle["cuantitativo"]
 			}
