@@ -25,6 +25,9 @@ func ConsultarTrimestres(vigencia string) ([]map[string]interface{}, error) {
 		for _, parametro := range parametros {
 			if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro_periodo?query=PeriodoId:"+vigencia+",ParametroId__CodigoAbreviacion:"+parametro["CodigoAbreviacion"].(string), &respuesta); err == nil {
 				request.LimpiezaRespuestaRefactor(respuesta, &trimestre)
+				if len(trimestre[0]) == 0 {
+					return nil, errors.New("error del servicio ConsultarTrimestres: No se encontraron trimestres para la vigencia " + vigencia)
+				}
 				trimestres = append(trimestres, trimestre...)
 			} else {
 				logs.Error("Error --> ", err)
