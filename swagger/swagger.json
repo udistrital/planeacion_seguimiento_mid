@@ -512,6 +512,32 @@
                 }
             }
         },
+        "/seguimiento/avalar/{plan_id}": {
+            "post": {
+                "tags": [
+                    "seguimiento"
+                ],
+                "description": "Petición Post para avalar plan y crear reportes de seguimiento",
+                "operationId": "SeguimientoController.AvalarPlan",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "plan_id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "400": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/seguimiento/verificacion/{id}": {
             "put": {
                 "tags": [
