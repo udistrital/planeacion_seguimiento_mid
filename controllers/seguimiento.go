@@ -21,6 +21,7 @@ func (c *SeguimientoController) URLMapping() {
 	c.Mapping("MigrarInformacion", c.MigrarInformacion)
 	c.Mapping("ConsultarEstadoTrimestre", c.ConsultarEstadoTrimestre)
 	c.Mapping("EstadoTrimestres", c.EstadoTrimestres)
+	c.Mapping("AvalarPlan", c.AvalarPlan)
 }
 
 // GuardarSeguimiento ...
@@ -46,7 +47,7 @@ func (c *SeguimientoController) GuardarSeguimiento() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }
@@ -72,7 +73,7 @@ func (c *SeguimientoController) ConsultarSeguimiento() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }
@@ -94,7 +95,7 @@ func (c *SeguimientoController) RevisarSeguimiento() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }
@@ -119,7 +120,7 @@ func (c *SeguimientoController) MigrarInformacion() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }
@@ -143,7 +144,7 @@ func (c *SeguimientoController) VerificarSeguimiento() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 
 	c.ServeJSON()
@@ -166,7 +167,7 @@ func (c *SeguimientoController) EstadoTrimestres() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }
@@ -191,7 +192,30 @@ func (c *SeguimientoController) ConsultarEstadoTrimestre() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
+	}
+
+	c.ServeJSON()
+}
+
+// AvalarPlan ...
+// @Title AvalarPlan
+// @Description Petición Post para avalar plan y crear reportes de seguimiento
+// @Param	plan_id 	path 	string	true		"The key for staticblock"
+// @Success 200
+// @Failure 400
+// @router /avalar/:plan_id [post]
+func (c *SeguimientoController) AvalarPlan() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	plan_id := c.Ctx.Input.Param(":plan_id")
+
+	if resultado, err := services.AvalarPlan(plan_id); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 
 	c.ServeJSON()

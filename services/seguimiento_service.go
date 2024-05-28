@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -959,4 +960,302 @@ func ConsultarEstadoTrimestre(planIdentificador string, trimestre string) (inter
 		return nil, errors.New(err.Error())
 	}
 	return nil, nil
+}
+
+func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes error) {
+	var resPlan map[string]interface{}
+	var plan map[string]interface{}
+	id_estado_avalado := "6153355601c7a2365b2fb2a1"
+	id_estado_preaval := "614d3b4401c7a222052fac05"
+
+	// Get plan
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan_id, &resPlan); err != nil {
+		errRes = errors.New("error del servicio AvalarPlan: Error al consultar plan")
+		return nil, errRes
+	}
+	if resPlan["Data"] == nil {
+		errRes = errors.New("error del servicio AvalarPlan: Plan no encontrado")
+		return nil, errRes
+	}
+	request.LimpiezaRespuestaRefactor(resPlan, &plan)
+
+	// Cambiar estado plan a avalado
+	respuesta, err := helpers.CambiarEstadoPlan(plan, id_estado_avalado)
+	if err != nil || respuesta["Success"] == false {
+		errRes = errors.New("error del servicio AvalarPlan: Error al cambiar estado del plan")
+		return nil, errRes
+	}
+
+	// Obtener trimestres de la vigencia
+	trimestres, err := ConsultarTrimestres(plan["vigencia"].(string))
+	if err != nil || len(trimestres) == 0 {
+		errRes = errors.New("error del servicio AvalarPlan: No se encontraron trimestres")
+		return nil, errRes
+	}
+
+	// Creacion de reportes de seguimiento
+	tipo := "61f236f525e40c582a0840d0"
+	var resPadres map[string]interface{}
+	var resDependencia []map[string]interface{}
+	var resTrimestres map[string]interface{}
+	var planesPadre []map[string]interface{}
+	var respuestaPost map[string]interface{}
+	reporte := make(map[string]interface{})
+	nuevo := true
+
+	// Caso especial para el plan de acción, retomar avances de seguimiento de versiones anteriores
+	if tipo == "61f236f525e40c582a0840d0" && plan["padre_plan_id"] != nil {
+		nuevo = false
+		var seguimientosPeticion []map[string]interface{}
+
+		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan?query=dependencia_id:"+plan["dependencia_id"].(string)+",vigencia:"+plan["vigencia"].(string)+",formato:false,nombre:"+url.QueryEscape(plan["nombre"].(string)), &resPadres); err == nil {
+			request.LimpiezaRespuestaRefactor(resPadres, &planesPadre)
+
+			var seguimientosLlenos []map[string]interface{}
+			var seguimientosVacios []map[string]interface{}
+
+			for _, padre := range planesPadre {
+				var resSeguimientos map[string]interface{}
+				var seguimientos []map[string]interface{}
+				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+padre["_id"].(string), &resSeguimientos); err == nil {
+					request.LimpiezaRespuestaRefactor(resSeguimientos, &seguimientos)
+					seguimientosPeticion = seguimientos
+					for _, seguimiento := range seguimientos {
+						if (len(seguimientosLlenos) + len(seguimientosVacios)) <= 4 {
+							if fmt.Sprintf("%v", seguimiento["dato"]) != "{}" {
+								seguimientosLlenos = append(seguimientosLlenos, seguimiento)
+							} else {
+								seguimientosVacios = append(seguimientosVacios, seguimiento)
+							}
+						} else {
+							break
+						}
+					}
+				}
+			}
+
+			if len(seguimientosPeticion) == 0 && plan["nueva_estructura"].(bool) {
+				nuevo = true
+			}
+
+			if !nuevo {
+				var resActualizacion map[string]interface{}
+				var resCreacion map[string]interface{}
+				var resSeguimientoDetalle map[string]interface{}
+				detalle := make(map[string]interface{})
+				dato := make(map[string]interface{})
+				var resEstado map[string]interface{}
+				estado := map[string]interface{}{}
+
+				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AER", &resEstado); err == nil {
+					estado = map[string]interface{}{
+						"nombre": resEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
+						"id":     resEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
+					}
+				}
+
+				for _, seguimiento := range seguimientosVacios {
+					// ? Inactivar el actual
+					seguimiento["activo"] = false
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
+					arrReportes = append(arrReportes, resActualizacion["Data"].(map[string]interface{}))
+					// ? Crear el nuevo
+					seguimiento["activo"] = true
+					seguimiento["plan_id"] = plan_id
+					delete(seguimiento, "_id")
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &resCreacion, seguimiento)
+					arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
+				}
+
+				for _, seguimiento := range seguimientosLlenos {
+
+					dato = map[string]interface{}{}
+					datoStr := seguimiento["dato"].(string)
+					json.Unmarshal([]byte(datoStr), &dato)
+
+					listAct := make([]string, 0, len(dato))
+					for k := range dato {
+						listAct = append(listAct, k)
+					}
+					for _, idxAct := range listAct {
+						id, existe := dato[idxAct].(map[string]interface{})["id"].(string)
+						if existe && id != "" {
+							if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+id, &resSeguimientoDetalle); err == nil {
+								request.LimpiezaRespuestaRefactor(resSeguimientoDetalle, &detalle)
+								detalle = planeacion.ConvertirStringJson(detalle)
+								// ? Inactivar el actual
+								detalle["activo"] = false
+								helpers.GuardarDetalleSeguimiento(detalle, true) // true => PUT
+								// ? crear el nuevo
+								detalle["activo"] = true
+								detalle["estado"] = estado
+								delete(detalle, "_id")
+								delete(detalle, "cuantitativo")
+								newDetalleId := helpers.GuardarDetalleSeguimiento(detalle, false) // false => POST
+								dato[idxAct].(map[string]interface{})["id"] = newDetalleId
+							}
+						}
+					}
+
+					// ? Inactiva el actual
+					seguimiento["activo"] = false
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
+					arrReportes = append(arrReportes, resActualizacion["Data"].(map[string]interface{}))
+
+					// ? crear el nuevo
+					seguimiento["activo"] = true
+					seguimiento["plan_id"] = plan_id
+					seguimiento["estado_seguimiento_id"] = "635c11e1e092c5fa5f099971" // En reporte
+					valor, _ := json.Marshal(dato)
+					str := string(valor)
+					seguimiento["dato"] = str
+					delete(seguimiento, "_id")
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &resCreacion, seguimiento)
+					arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
+				}
+			}
+		}
+	}
+
+	if nuevo {
+		if err := request.GetJson("http://"+beego.AppConfig.String("OikosService")+"/dependencia?query=Id:"+plan["dependencia_id"].(string), &resDependencia); err != nil {
+			errRes = errors.New("error del servicio AvalarPlan: Error al consultar dependencia")
+			respuesta, err := helpers.CambiarEstadoPlan(plan, id_estado_preaval)
+			if err != nil || respuesta["Success"] == false {
+				errRes = errors.New("error del servicio AvalarPlan: Error al cambiar estado del plan")
+			}
+			return nil, errRes
+		}
+		for i := 0; i < len(trimestres); i++ {
+			periodo := int(trimestres[i]["Id"].(float64))
+			if nuevaEstructura, ok := plan["nueva_estructura"].(bool); ok && nuevaEstructura {
+				var respuestaRegistro map[string]interface{}
+				planesInteresArray := []interface{}{
+					map[string]interface{}{
+						"_id":    plan["formato_id"],
+						"nombre": plan["nombre"],
+					},
+				}
+				planesInteresJSON, err := json.Marshal(planesInteresArray)
+				if err != nil {
+					errRes = errors.New("error del servicio AvalarPlan: Error al convertir el array a JSON")
+					respuesta, err := helpers.CambiarEstadoPlan(plan, id_estado_preaval)
+					if err != nil || respuesta["Success"] == false {
+						errRes = errors.New("error del servicio AvalarPlan: Error al cambiar estado del plan")
+					}
+					return nil, errRes
+				}
+
+				dependenciaID, err := strconv.Atoi(plan["dependencia_id"].(string))
+				if err != nil {
+					errRes = errors.New("error del servicio AvalarPlan: Error al convertir el ID de la dependencia")
+					respuesta, err := helpers.CambiarEstadoPlan(plan, id_estado_preaval)
+					if err != nil || respuesta["Success"] == false {
+						errRes = errors.New("error del servicio AvalarPlan: Error al cambiar estado del plan")
+					}
+					return nil, errRes
+				}
+				unidadInteresArray := []interface{}{
+					map[string]interface{}{
+						"Id":     dependenciaID,
+						"Nombre": resDependencia[0]["Nombre"].(string),
+					},
+				}
+				unidadInteresJSON, err := json.Marshal(unidadInteresArray)
+				if err != nil {
+					errRes = errors.New("error del servicio AvalarPlan: Error al convertir el array a JSON")
+					respuesta, err := helpers.CambiarEstadoPlan(plan, id_estado_preaval)
+					if err != nil || respuesta["Success"] == false {
+						errRes = errors.New("error del servicio AvalarPlan: Error al cambiar estado del plan")
+					}
+					return nil, errRes
+				}
+
+				body := make(map[string]interface{})
+				body["periodo_id"] = strconv.Itoa(periodo)
+				body["planes_interes"] = string(planesInteresJSON)
+				body["unidades_interes"] = string(unidadInteresJSON)
+				body["tipo_seguimiento_id"] = tipo
+				body["activo"] = true
+
+				if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento/buscar-unidad-planes/1", "POST", &respuestaRegistro, body); err != nil {
+					errRes = errors.New("error del servicio AvalarPlan: Error al buscar el periodo-seguimiento")
+					respuesta, err := helpers.CambiarEstadoPlan(plan, id_estado_preaval)
+					if err != nil || respuesta["Success"] == false {
+						errRes = errors.New("error del servicio AvalarPlan: Error al cambiar estado del plan")
+					}
+					return nil, errRes
+				}
+
+				if respuestaRegistro["Data"] == nil {
+					errRes = errors.New("error del servicio AvalarPlan: No se encontró el periodo-seguimiento")
+					respuesta, err := helpers.CambiarEstadoPlan(plan, id_estado_preaval)
+					if err != nil || respuesta["Success"] == false {
+						errRes = errors.New("error del servicio AvalarPlan: Error al cambiar estado del plan")
+					}
+					return nil, errRes
+				}
+
+				reporte["nombre"] = "Seguimiento para el " + plan["nombre"].(string)
+				reporte["descripcion"] = "Seguimiento " + plan["nombre"].(string)
+				if resDependencia[0]["Nombre"] != nil {
+					reporte["descripcion"] = reporte["descripcion"].(string) + " dependencia " + resDependencia[0]["Nombre"].(string)
+				}
+				reporte["activo"] = true
+				reporte["plan_id"] = plan_id
+				reporte["estado_seguimiento_id"] = "61f237df25e40c57a60840d5"
+				reporte["periodo_seguimiento_id"] = respuestaRegistro["Data"].([]interface{})[0].(map[string]interface{})["_id"]
+				reporte["fecha_inicio"] = respuestaRegistro["Data"].([]interface{})[0].(map[string]interface{})["fecha_inicio"]
+				reporte["tipo_seguimiento_id"] = tipo
+				reporte["dato"] = "{}"
+
+				_, err = json.Marshal(reporte)
+				if err != nil {
+					errRes = errors.New("error del servicio AvalarPlan: Error al convertir el reporte a JSON")
+					return nil, errRes
+				}
+
+				if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &respuestaPost, reporte); err != nil {
+					errRes = errors.New("error del servicio AvalarPlan: Error creando reporte")
+					return nil, errRes
+				}
+
+				arrReportes = append(arrReportes, respuestaPost["Data"].(map[string]interface{}))
+				respuestaRegistro = nil
+				respuestaPost = nil
+			} else {
+				// El parámetro 'nueva_estructura' no está presente o no es del tipo bool o no es true.
+				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+`/periodo-seguimiento?query=tipo_seguimiento_id:`+tipo+`,periodo_id:`+strconv.Itoa(periodo), &resTrimestres); err != nil {
+					errRes = errors.New("error del servicio AvalarPlan: Error al consultar el periodo-seguimiento")
+					respuesta, err := helpers.CambiarEstadoPlan(plan, id_estado_preaval)
+					if err != nil || respuesta["Success"] == false {
+						errRes = errors.New("error del servicio AvalarPlan: Error al cambiar estado del plan")
+					}
+					return nil, errRes
+				}
+
+				reporte["nombre"] = "Seguimiento para el " + plan["nombre"].(string)
+				reporte["descripcion"] = "Seguimiento " + plan["nombre"].(string)
+				if resDependencia[0]["Nombre"] != nil {
+					reporte["descripcion"] = reporte["descripcion"].(string) + " dependencia " + resDependencia[0]["Nombre"].(string)
+				}
+				reporte["activo"] = true
+				reporte["plan_id"] = plan_id
+				reporte["estado_seguimiento_id"] = "61f237df25e40c57a60840d5"
+				reporte["periodo_seguimiento_id"] = resTrimestres["Data"].([]interface{})[0].(map[string]interface{})["_id"]
+				reporte["fecha_inicio"] = resTrimestres["Data"].([]interface{})[0].(map[string]interface{})["fecha_fin"]
+				reporte["tipo_seguimiento_id"] = tipo
+				reporte["dato"] = "{}"
+
+				if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &respuestaPost, reporte); err != nil {
+					errRes = errors.New("error del servicio AvalarPlan: Error creando reporte")
+					return nil, errRes
+				}
+
+				arrReportes = append(arrReportes, respuestaPost["Data"].(map[string]interface{}))
+				respuestaPost = nil
+			}
+		}
+	}
+	return arrReportes, nil
 }
