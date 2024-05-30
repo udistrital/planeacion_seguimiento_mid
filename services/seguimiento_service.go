@@ -289,7 +289,7 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indice].(map[string]interface{})["id"].(string), &respuestaDetalle); err == nil {
 				if respuestaDetalle["Data"] != "null" {
 					request.LimpiezaRespuestaRefactor(respuestaDetalle, &detalle)
-					detalle = planeacion.ConvertirStringJson(detalle)
+					detalle = helpers.ConvertirStringJson(detalle)
 					identificador = detalle["_id"].(string)
 
 					if len(detalle["informacion"].(map[string]interface{})) == 0 {
