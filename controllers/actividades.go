@@ -17,7 +17,8 @@ func (c *ActividadesController) URLMapping() {
 	c.Mapping("ConsultarActividadesGenerales", c.ConsultarActividadesGenerales)
 	c.Mapping("RetornarActividad", c.RetornarActividad)
 	c.Mapping("RevisarActividad", c.RevisarActividad)
-
+	c.Mapping("RevisarActividadJefeDependencia", c.RevisarActividadJefeDependencia)
+	c.Mapping("RetornarActividadJefeDependencia", c.RetornarActividadJefeDependencia)
 }
 
 // ConsultarActividadesGenerales ...
@@ -92,5 +93,59 @@ func (c *ActividadesController) RetornarActividad() {
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
 	}
+	c.ServeJSON()
+}
+
+// RevisarActividadJefeDependencia ...
+// @Title RevisarActividadJefeDependencia
+// @Description put Seguimiento by id
+// @Param	plan_id		path 	string	true		"The key for staticblock"
+// @Param	index		path 	string	true		"The key for staticblock"
+// @Param	trimestre	path 	string	true		"The key for staticblock"
+// @Param	body		body 	{}	true		"body for Plan content"
+// @Success 200 {object} models.Seguimiento
+// @Failure 403 :plan_id is empty
+// @router /revision_jefe_dependencia/:plan_id/:index/:trimestre [put]
+func (c *ActividadesController) RevisarActividadJefeDependencia() {
+	defer errorhandler.HandlePanic(&c.Controller)
+	plan_id := c.Ctx.Input.Param(":plan_id")
+	indexActividad := c.Ctx.Input.Param(":index")
+	trimestre := c.Ctx.Input.Param(":trimestre")
+	requestBody := c.Ctx.Input.RequestBody
+	if resultado, err := services.RevisarActividadJefeDependencia(plan_id, indexActividad, trimestre, requestBody); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
+	}
+
+	c.ServeJSON()
+}
+
+// RetornarActividadJefeDependencia ...
+// @Title RetornarActividadJefeDependencia
+// @Description Retorna la actividad de Avalado a en Revision
+// @Param	plan_id		path 	string	true		"The key for staticblock"
+// @Param	index		path 	string	true		"The key for staticblock"
+// @Param	trimestre	path 	string	true		"The key for staticblock"
+// @Param	body		body 	{}	true		"body for Plan content"
+// @Success 200 {object} models.Seguimiento
+// @Failure 403 :plan_id is empty
+// @router /retornar_jefe_dependencia/:plan_id/:index/:trimestre [put]
+func (c *ActividadesController) RetornarActividadJefeDependencia() {
+	defer errorhandler.HandlePanic(&c.Controller)
+	plan_id := c.Ctx.Input.Param(":plan_id")
+	indexActividad := c.Ctx.Input.Param(":index")
+	trimestre := c.Ctx.Input.Param(":trimestre")
+	requestBody := c.Ctx.Input.RequestBody
+	if resultado, err := services.RetornarActividadJefeDependencia(plan_id, indexActividad, trimestre, requestBody); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
+	}
+
 	c.ServeJSON()
 }

@@ -527,7 +527,7 @@ func seguimientoReportable(seguimiento map[string]interface{}) error {
 
 		for i := 0; i < len(subgrupos); i++ {
 			if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "actividad") && strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "general") {
-				actividades, errActividades := consultarActividades(subgrupos[i]["_id"].(string))
+				actividades, errActividades := ConsultarActividades(subgrupos[i]["_id"].(string))
 				if errActividades != nil {
 					logs.Error("Error --> ", errActividades)
 					return errors.New(errActividades.Error())

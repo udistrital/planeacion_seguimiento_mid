@@ -27,8 +27,26 @@ func init() {
 
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"],
         beego.ControllerComments{
+            Method: "RetornarActividadJefeDependencia",
+            Router: "/retornar_jefe_dependencia/:plan_id/:index/:trimestre",
+            AllowHTTPMethods: []string{"put"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"],
+        beego.ControllerComments{
             Method: "RevisarActividad",
             Router: "/revision/:planId/:index/:trimestre",
+            AllowHTTPMethods: []string{"put"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ActividadesController"],
+        beego.ControllerComments{
+            Method: "RevisarActividadJefeDependencia",
+            Router: "/revision_jefe_dependencia/:plan_id/:index/:trimestre",
             AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -183,6 +201,15 @@ func init() {
             Method: "AvalarPlan",
             Router: "/avalar/:plan_id",
             AllowHTTPMethods: []string{"post"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"],
+        beego.ControllerComments{
+            Method: "RevisarSeguimientoJefeDependencia",
+            Router: "/revision_jefe_dependencia/:id",
+            AllowHTTPMethods: []string{"put"},
             MethodParams: param.Make(),
             Filters: nil,
             Params: nil})
