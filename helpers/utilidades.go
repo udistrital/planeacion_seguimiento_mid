@@ -61,25 +61,28 @@ func RegistrarDocumento(documento []map[string]interface{}) (status interface{},
 
 func GuardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) string {
 	var respuesta map[string]interface{}
+	// var data map[string]interface{}
 	var identificador string
 	var tipo_peticion string
 	url := "http://" + beego.AppConfig.String("PlanesService") + "/seguimiento-detalle"
-
 	detalle = planeacion.ConvertirJsonString(detalle)
-	data := map[string]interface{}{}
 
-	data["estado"] = detalle["estado"].(string)
-	if fmt.Sprintf("%v", detalle["activo"]) == "<nil>" {
-		data["activo"] = "true"
-	} else {
-		data["activo"] = detalle["activo"].(string)
-	}
-	if fmt.Sprintf("%v", detalle["fecha_creacion"]) == "<nil>" {
-		data["fecha_creacion"] = time_bogota.TiempoBogotaFormato()
-		data["fecha_modificacion"] = time_bogota.TiempoBogotaFormato()
-	} else {
-		data["fecha_creacion"] = detalle["fecha_creacion"].(string)
-		data["fecha_modificacion"] = detalle["fecha_modificacion"].(string)
+	beego.Info("Detalle: ", detalle)
+	
+	if !actualizar {
+		detalle["estado"] = detalle["estado"].(string)
+		if fmt.Sprintf("%v", detalle["activo"]) == "<nil>" {
+			detalle["activo"] = "true"
+		} else {
+			detalle["activo"] = detalle["activo"].(string)
+		}
+		if fmt.Sprintf("%v", detalle["fecha_creacion"]) == "<nil>" {
+			detalle["fecha_creacion"] = time_bogota.TiempoBogotaFormato()
+			detalle["fecha_modificacion"] = time_bogota.TiempoBogotaFormato()
+		} else {
+			detalle["fecha_creacion"] = detalle["fecha_creacion"].(string)
+			detalle["fecha_modificacion"] = detalle["fecha_modificacion"].(string)
+		}
 	}
 
 	if valor, existe := detalle["informacion"]; existe {
@@ -98,6 +101,7 @@ func GuardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) 
 		detalle["cuantitativo"] = "{}"
 	}
 	if valor, existe := detalle["evidencia"]; existe {
+		beego.Info("Evidencia: ", valor)
 		detalle["evidencia"] = valor
 	} else {
 		detalle["evidencia"] = "[]"
@@ -107,13 +111,19 @@ func GuardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) 
 		tipo_peticion = "PUT"
 		url += "/" + detalle["_id"].(string)
 	} else {
+		detalle["informacion"] = detalle["informacion"].(string)
+		detalle["cualitativo"] = detalle["cualitativo"].(string)
+		detalle["cuantitativo"] = detalle["cuantitativo"].(string)
+		detalle["evidencia"] = detalle["evidencia"].(string)
 		tipo_peticion = "POST"
 	}
 
-	if err := request.SendJson(url, tipo_peticion, &respuesta, data); err == nil && respuesta["Status"].(string) != "400" {
-		aux := make(map[string]interface{})
-		request.LimpiezaRespuestaRefactor(respuesta, &aux)
-		identificador = aux["_id"].(string)
+	if err := request.SendJson(url, tipo_peticion, &respuesta, detalle); err == nil {
+		if respuesta["Status"].(string) != "400" {
+			aux := make(map[string]interface{})
+			request.LimpiezaRespuestaRefactor(respuesta, &aux)
+			identificador = aux["_id"].(string)
+		}
 	}
 	return identificador
 }

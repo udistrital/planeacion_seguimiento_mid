@@ -7,7 +7,6 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/planeacion_seguimiento_mid/helpers"
-	"github.com/udistrital/utils_oas/planeacion"
 	"github.com/udistrital/utils_oas/request"
 )
 
@@ -85,7 +84,7 @@ func GuardarDocumentos(requestBody []byte, planIdentificador string, indiceActiv
 				if segregado && identificador != "" {
 					if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 						request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
-						detalle = planeacion.ConvertirStringJson(detalle)
+						detalle = helpers.ConvertirStringJson(detalle)
 						detalle["evidencia"] = evidencias
 						detalle["estado"] = estado
 						helpers.GuardarDetalleSeguimiento(detalle, true)
@@ -165,7 +164,7 @@ func GuardarCualitativo(requestBody []byte, planIdentificador string, indiceActi
 				if segregado && identificador != "" {
 					if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 						request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
-						detalle = planeacion.ConvertirStringJson(detalle)
+						detalle = helpers.ConvertirStringJson(detalle)
 						estado = detalle["estado"].(map[string]interface{})
 					} else {
 						logs.Error("Error --> ", err)
@@ -207,6 +206,7 @@ func GuardarCualitativo(requestBody []byte, planIdentificador string, indiceActi
 					detalle["cualitativo"] = cualitativo
 					detalle["informacion"] = informacion
 					detalle["estado"] = estado
+					detalle["evidencia"] = body["evidencia"]
 					helpers.GuardarDetalleSeguimiento(detalle, true)
 				} else {
 					dato[indiceActividad].(map[string]interface{})["informacion"] = informacion
@@ -225,7 +225,7 @@ func GuardarCualitativo(requestBody []byte, planIdentificador string, indiceActi
 
 			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
 				logs.Error("Error -->", err)
-				return nil, errors.New("error del servicio GuardarCuanlitativo:    Error actualizando componente cualitativo de seguimiento \"seguimiento[\"_id\"].(string)\"" + err.Error())
+				return nil, errors.New("error del servicio GuardarCualitativo: Error actualizando componente cualitativo de seguimiento \"seguimiento[\"_id\"].(string)\"" + err.Error())
 			}
 			return respuesta["Data"], nil
 		} else {
@@ -279,7 +279,7 @@ func GuardarCuantitativo(requestBody []byte, planIdentificador string, indiceAct
 				if segregado && identificador != "" {
 					if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
 						request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
-						detalle = planeacion.ConvertirStringJson(detalle)
+						detalle = helpers.ConvertirStringJson(detalle)
 						estado = detalle["estado"].(map[string]interface{})
 					}
 				} else {
