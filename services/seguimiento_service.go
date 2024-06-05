@@ -160,7 +160,7 @@ func RevisarSeguimiento(seguimientoIdentificador string) (interface{}, error) {
 		seguimiento = aux[0]
 		datoStr := seguimiento["dato"].(string)
 		json.Unmarshal([]byte(datoStr), &dato)
-		avalado, observacion, errAvalable := seguimientoAvalable(seguimiento)
+		avalado, observacion, mensaje, errAvalable := seguimientoAvalable(seguimiento)
 
 		if (avalado || observacion) && errAvalable == nil {
 			var codigo_abreviacion string
@@ -187,8 +187,13 @@ func RevisarSeguimiento(seguimientoIdentificador string) (interface{}, error) {
 			data := respuesta["Data"].(map[string]interface{})
 			return data, nil
 		} else {
-			logs.Error("Error -->", errAvalable)
-			return nil, errors.New(errAvalable.Error())
+			if mensaje != nil {
+				responseJSON, _ := json.Marshal(mensaje)
+				return nil, fmt.Errorf("%v", string(responseJSON))
+			} else {
+				logs.Error("Error -->", errAvalable)
+				return nil, errors.New(errAvalable.Error())
+			}
 		}
 	} else {
 		logs.Error("Error -->", err)
@@ -614,7 +619,7 @@ func consultarCuantitativoPlan(seguimiento map[string]interface{}, indice string
 	return response, nil
 }
 
-func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, error) {
+func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, map[string]interface{}, error) {
 	var respuesta map[string]interface{}
 	var subgrupos []map[string]interface{}
 	var datoPlan map[string]interface{}
@@ -668,7 +673,7 @@ func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, error)
 										}
 									} else {
 										logs.Error("Error -->", err)
-										return avaladas, observaciones, errors.New(err.Error())
+										return avaladas, observaciones, nil, errors.New(err.Error())
 									}
 								} else {
 									if elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Actividad avalada" && elemento.(map[string]interface{})["estado"].(map[string]interface{})["nombre"] != "Con observaciones" {
@@ -700,14 +705,14 @@ func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, error)
 		}
 	} else {
 		logs.Error("Error -->", err)
-		return avaladas, observaciones, errors.New(err.Error())
+		return avaladas, observaciones, nil, errors.New(err.Error())
 	}
 
 	if fmt.Sprintf("%v", dato) != "map[]" {
-		return avaladas, observaciones, errors.New("funcion seguimientoAvalable:   Hay actividades sin revisar")
+		return avaladas, observaciones, map[string]interface{}{"error": 1, "motivo": "Hay actividades sin revisar", "actividades": dato}, nil
 	}
 
-	return avaladas, observaciones, nil
+	return avaladas, observaciones, nil, nil
 }
 
 func consultarRespuestaAnterior(dataSeg map[string]interface{}, indice int, respuestas []map[string]interface{}, indiceActividad string, trimestre string) ([]map[string]interface{}, error) {
@@ -1259,7 +1264,6 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 	return arrReportes, nil
 }
 
-
 func RevisarSeguimientoJefeDependencia(seguimiento_id string) (map[string]interface{}, error) {
 	var respuesta map[string]interface{}
 	var seguimiento map[string]interface{}
@@ -1303,7 +1307,8 @@ func RevisarSeguimientoJefeDependencia(seguimiento_id string) (map[string]interf
 		data := respuesta["Data"].(map[string]interface{})
 		return data, nil
 	} else {
-		return nil, fmt.Errorf("%d - %s - %v", mensaje["error"].(int), mensaje["motivo"].(string), mensaje["actividades"])
+		responseJSON, _ := json.Marshal(mensaje)
+		return nil, fmt.Errorf("%v", string(responseJSON))
 	}
 }
 
