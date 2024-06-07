@@ -40,7 +40,7 @@ func (c *ReportesController) HabilitarReportes() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, reportes)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 
 	c.ServeJSON()
@@ -65,7 +65,7 @@ func (c *ReportesController) CrearReportes() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }
@@ -88,7 +88,7 @@ func (c *ReportesController) ReportarSeguimiento() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }
@@ -109,7 +109,7 @@ func (c *ReportesController) ReportarActividad() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }

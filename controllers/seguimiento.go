@@ -22,6 +22,7 @@ func (c *SeguimientoController) URLMapping() {
 	c.Mapping("ConsultarEstadoTrimestre", c.ConsultarEstadoTrimestre)
 	c.Mapping("EstadoTrimestres", c.EstadoTrimestres)
 	c.Mapping("AvalarPlan", c.AvalarPlan)
+	c.Mapping("RevisarSeguimientoJefeDependencia", c.RevisarSeguimientoJefeDependencia)
 }
 
 // GuardarSeguimiento ...
@@ -216,6 +217,27 @@ func (c *SeguimientoController) AvalarPlan() {
 	} else {
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
+	}
+
+	c.ServeJSON()
+}
+
+// RevisarSeguimiento ...
+// @Title RevisarSeguimiento
+// @Description put Seguimiento by id
+// @Param	id		path 	string	true		"The key for staticblock"
+// @Success 200 {object} models.Seguimiento
+// @Failure 403 :id is empty
+// @router /revision_jefe_dependencia/:id [put]
+func (c *SeguimientoController) RevisarSeguimientoJefeDependencia() {
+	defer errorhandler.HandlePanic(&c.Controller)
+	seguimiento_id := c.Ctx.Input.Param(":id")
+	if resultado, err := services.RevisarSeguimientoJefeDependencia(seguimiento_id); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
 	}
 
 	c.ServeJSON()

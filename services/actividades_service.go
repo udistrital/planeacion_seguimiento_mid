@@ -11,7 +11,6 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/planeacion_seguimiento_mid/helpers"
-	"github.com/udistrital/utils_oas/planeacion"
 	"github.com/udistrital/utils_oas/request"
 )
 
@@ -39,7 +38,7 @@ func ConsultarActividadesGenerales(seguimiento_identificador string) ([]map[stri
 
 				for i := 0; i < len(subgrupos); i++ {
 					if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "actividad") && strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "general") {
-						actividades, errActividades := consultarActividades(subgrupos[i]["_id"].(string))
+						actividades, errActividades := ConsultarActividades(subgrupos[i]["_id"].(string))
 						if errActividades != nil {
 							logs.Error("Error --> ", errActividades)
 							return nil, errors.New(errActividades.Error())
@@ -165,7 +164,7 @@ func RevisarActividad(requestBody []byte, planIdentificador string, indiceActivi
 	if segregado && identificador != "" {
 		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+identificador, &respuestaDetalle); err == nil {
 			request.LimpiezaRespuestaRefactor(respuestaDetalle, &detalle)
-			detalle = planeacion.ConvertirStringJson(detalle)
+			detalle = helpers.ConvertirStringJson(detalle)
 			detalle["evidencia"] = body["evidencia"]
 			detalle["cualitativo"] = body["cualitativo"]
 			detalle["cuantitativo"] = body["cuantitativo"]
@@ -229,7 +228,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 	if segregado && identificador != "" {
 		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+identificador, &respuestaDetalle); err == nil {
 			request.LimpiezaRespuestaRefactor(respuestaDetalle, &detalle)
-			detalle = planeacion.ConvertirStringJson(detalle)
+			detalle = helpers.ConvertirStringJson(detalle)
 		} else {
 			logs.Error("Error -->", err)
 			return nil, errors.New(err.Error())
@@ -246,7 +245,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 				return nil, errors.New(err.Error())
 			}
 			seguimiento["estado_seguimiento_id"] = estado["id"]
-			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AR", &respuestaEstado); err == nil {
+			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AVV", &respuestaEstado); err == nil {
 				estado = map[string]interface{}{
 					"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
 					"id":     respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
@@ -277,7 +276,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 				}
 			}
 			seguimiento["estado_seguimiento_id"] = estado["id"]
-			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AR", &respuestaEstado); err == nil {
+			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AVV", &respuestaEstado); err == nil {
 				estado = map[string]interface{}{
 					"nombre": respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
 					"id":     respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
@@ -302,7 +301,7 @@ func RetornarActividad(requestBody []byte, planIdentificador string, indiceActiv
 	}
 }
 
-func consultarActividades(subgrupo_identificador string) ([]map[string]interface{}, error) {
+func ConsultarActividades(subgrupo_identificador string) ([]map[string]interface{}, error) {
 	var respuesta map[string]interface{}
 	var subgrupoDetalle map[string]interface{}
 	var datoPlan map[string]interface{}
@@ -330,4 +329,192 @@ func consultarActividades(subgrupo_identificador string) ([]map[string]interface
 		return nil, errors.New(err.Error())
 	}
 	return actividades, nil
+}
+
+func RevisarActividadJefeDependencia(plan_id string, indexActividad string, trimestre string, requestBody []byte) (map[string]interface{}, error) {
+	var body map[string]interface{}
+	var respuesta map[string]interface{}
+	var seguimiento map[string]interface{}
+	var resEstado map[string]interface{}
+	var resDetalle map[string]interface{}
+	detalle := map[string]interface{}{}
+	dato := make(map[string]interface{})
+	estado := map[string]interface{}{}
+	comentario := false
+
+	if err := json.Unmarshal(requestBody, &body); err != nil {
+		return nil, errors.New("error del servicio RevisarActividadJefeDependencia: Error al decodificar el cuerpo de la petición")
+	}
+
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+plan_id+",periodo_seguimiento_id:"+trimestre, &respuesta); err != nil {
+		return nil, errors.New("error del servicio RevisarActividadJefeDependencia: No se pudo consultar el seguimiento")
+	}
+
+	aux := make([]map[string]interface{}, 1)
+	request.LimpiezaRespuestaRefactor(respuesta, &aux)
+
+	seguimiento = aux[0]
+	datoStr := seguimiento["dato"].(string)
+	json.Unmarshal([]byte(datoStr), &dato)
+
+	dato[indexActividad] = body
+
+	// Cualitativo
+	if body["cualitativo"].(map[string]interface{})["observaciones"] != "" && body["cualitativo"].(map[string]interface{})["observaciones"] != "Sin observación" && body["cualitativo"].(map[string]interface{})["observaciones"] != nil {
+		comentario = true
+	}
+
+	// Cuantitativo
+	for _, indicador := range body["cuantitativo"].(map[string]interface{})["indicadores"].([]interface{}) {
+		if indicador.(map[string]interface{})["observaciones"] != "" && indicador.(map[string]interface{})["observaciones"] != "Sin observación" && indicador.(map[string]interface{})["observaciones"] != nil {
+			comentario = true
+			break
+		}
+	}
+
+	// Evidencia
+	for _, evidencia := range body["evidencia"].([]interface{}) {
+		if evidencia.(map[string]interface{})["Observacion"] != "" && evidencia.(map[string]interface{})["Observacion"] != "Sin observación" {
+			comentario = true
+			break
+		}
+	}
+
+	if comentario {
+		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:CO", &resEstado); err == nil {
+			estado = map[string]interface{}{
+				"nombre": resEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
+				"id":     resEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
+			}
+		}
+	} else {
+		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AVV", &resEstado); err == nil {
+			estado = map[string]interface{}{
+				"nombre": resEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
+				"id":     resEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
+			}
+		}
+	}
+
+	id, segregado := body["id"].(string)
+	if segregado && id != "" {
+		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+id, &resDetalle); err == nil {
+			request.LimpiezaRespuestaRefactor(resDetalle, &detalle)
+			detalle = helpers.ConvertirStringJson(detalle)
+			detalle["evidencia"] = body["evidencia"]
+			detalle["cualitativo"] = body["cualitativo"]
+			detalle["cuantitativo"] = body["cuantitativo"]
+			detalle["estado"] = estado
+			helpers.GuardarDetalleSeguimiento(detalle, true)
+		}
+	} else {
+		dato[indexActividad].(map[string]interface{})["estado"] = estado
+
+		b, _ := json.Marshal(dato)
+		str := string(b)
+		seguimiento["dato"] = str
+	}
+
+	if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
+		return nil, errors.New("error del servicio RevisarActividadJefeDependencia: No se pudo actualizar el seguimiento")
+	}
+	data := respuesta["Data"].(map[string]interface{})
+	data["Observación"] = comentario
+	return data, nil
+}
+
+func RetornarActividadJefeDependencia(plan_id string, indexActividad string, trimestre string, requestBody []byte) (map[string]interface{}, error) {
+	var body map[string]interface{}
+	var respuesta map[string]interface{}
+	var seguimiento map[string]interface{}
+	var resEstado map[string]interface{}
+	var resDetalle map[string]interface{}
+	detalle := map[string]interface{}{}
+	dato := make(map[string]interface{})
+	estado := map[string]interface{}{}
+
+	if err := json.Unmarshal(requestBody, &body); err != nil {
+		return nil, errors.New("error del servicio RetornarActividadJefeDependencia: Error al decodificar el cuerpo de la petición")
+	}
+
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+plan_id+",periodo_seguimiento_id:"+trimestre, &respuesta); err != nil {
+		return nil, errors.New("error del servicio RetornarActividadJefeDependencia: Error al consultar el seguimiento")
+	}
+
+	aux := make([]map[string]interface{}, 1)
+	request.LimpiezaRespuestaRefactor(respuesta, &aux)
+
+	seguimiento = aux[0]
+	datoStr := seguimiento["dato"].(string)
+	json.Unmarshal([]byte(datoStr), &dato)
+
+	id, segregado := body["id"].(string)
+	if segregado && id != "" {
+		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+id, &resDetalle); err == nil {
+			request.LimpiezaRespuestaRefactor(resDetalle, &detalle)
+			detalle = helpers.ConvertirStringJson(detalle)
+		}
+
+		if detalle["estado"].(map[string]interface{})["id"] == "65bf0d840c1fc945b06afeb1" {
+			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:RJU", &resEstado); err == nil {
+				estado = map[string]interface{}{
+					"nombre": resEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
+					"id":     resEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
+				}
+			}
+			seguimiento["estado_seguimiento_id"] = estado["id"]
+
+			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AR", &resEstado); err == nil {
+				estado = map[string]interface{}{
+					"nombre": resEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
+					"id":     resEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
+				}
+			}
+			detalle["estado"] = estado
+			helpers.GuardarDetalleSeguimiento(detalle, true)
+
+			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
+				return nil, errors.New("error del servicio RetornarActividadJefeDependencia: No se pudo actualizar el seguimiento")
+			}
+
+			data := respuesta["Data"].(map[string]interface{})
+			return data, nil
+		} else {
+			return nil, nil
+		}
+	} else {
+		fmt.Println("No se encontro el detalle")
+		dato[indexActividad] = body
+
+		if dato[indexActividad].(map[string]interface{})["estado"].(map[string]interface{})["id"] == "63793207242b813898e9856b" {
+			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:RJU", &resEstado); err == nil {
+				estado = map[string]interface{}{
+					"nombre": resEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
+					"id":     resEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
+				}
+			}
+			seguimiento["estado_seguimiento_id"] = estado["id"]
+
+			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento?query=codigo_abreviacion:AR", &resEstado); err == nil {
+				estado = map[string]interface{}{
+					"nombre": resEstado["Data"].([]interface{})[0].(map[string]interface{})["nombre"],
+					"id":     resEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
+				}
+			}
+			dato[indexActividad].(map[string]interface{})["estado"] = estado
+
+			b, _ := json.Marshal(dato)
+			str := string(b)
+			seguimiento["dato"] = str
+
+			if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &respuesta, seguimiento); err != nil {
+				return nil, errors.New("error del servicio RetornarActividadJefeDependencia: No se pudo actualizar el seguimiento")
+			}
+
+			data := respuesta["Data"].(map[string]interface{})
+			return data, nil
+		} else {
+			return nil, nil
+		}
+	}
 }
