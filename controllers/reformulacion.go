@@ -27,9 +27,9 @@ func (c *ReformulacionController) URLMapping() {
 func (c *ReformulacionController) SolicitudReformulacion() {
 	defer errorhandler.HandlePanic(&c.Controller)
 
-	if resultado, err := services.SolicitudReformulacion(c.Ctx.Input.RequestBody); err == nil {
+	if resultado, err := services.SolicitarReformulacion(c.Ctx.Input.RequestBody); err == nil {
 		c.Ctx.Output.SetStatus(201)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 201, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
