@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/planeacion_seguimiento_mid/helpers"
 	"github.com/udistrital/utils_oas/request"
+	"golang.org/x/sync/errgroup"
 )
 
 func GuardarSeguimiento(requestBody []byte, planIdentificador string, indiceActividad string, trimestre string) (interface{}, error) {
@@ -867,49 +870,67 @@ func EstadoTrimestres(planId string) (interface{}, error) {
 	var resPeriodo map[string]interface{}
 	var planes []map[string]interface{}
 	var auxPlanes []map[string]interface{}
+	var mutex sync.Mutex
+	wge := new(errgroup.Group)
 
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+planId, &resSeguimiento); err == nil {
 		request.LimpiezaRespuestaRefactor(resSeguimiento, &planes)
 
 		for _, plan := range planes {
-			var periodo []map[string]interface{}
-			periodoSeguimientoId := plan["periodo_seguimiento_id"].(string)
+			plan := plan
+			wge.Go(func() error {
+				var periodo []map[string]interface{}
+				periodoSeguimientoId := plan["periodo_seguimiento_id"].(string)
 
-			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento?query=_id:"+periodoSeguimientoId, &resPeriodoSeguimiento); err == nil {
-				var periodoSeguimiento []map[string]interface{}
-				request.LimpiezaRespuestaRefactor(resPeriodoSeguimiento, &periodoSeguimiento)
-				if fmt.Sprintf("%v", periodoSeguimiento[0]) != "map[]" {
+				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento?query=_id:"+periodoSeguimientoId, &resPeriodoSeguimiento); err == nil {
+					var periodoSeguimiento []map[string]interface{}
+					request.LimpiezaRespuestaRefactor(resPeriodoSeguimiento, &periodoSeguimiento)
+					if fmt.Sprintf("%v", periodoSeguimiento[0]) != "map[]" {
 
-					if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro_periodo?query=Id:"+periodoSeguimiento[0]["periodo_id"].(string), &resPeriodo); err == nil {
-						request.LimpiezaRespuestaRefactor(resPeriodo, &periodo)
-						auxPeriodo := periodo[0]["ParametroId"].(map[string]interface{})
-						periodoSeguimiento[0]["periodo_nombre"] = auxPeriodo["CodigoAbreviacion"].(string)
-						plan["periodo_seguimiento_id"] = periodoSeguimiento[0]
+						if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro_periodo?query=Id:"+periodoSeguimiento[0]["periodo_id"].(string), &resPeriodo); err == nil {
+							request.LimpiezaRespuestaRefactor(resPeriodo, &periodo)
+							auxPeriodo := periodo[0]["ParametroId"].(map[string]interface{})
+							periodoSeguimiento[0]["periodo_nombre"] = auxPeriodo["CodigoAbreviacion"].(string)
+							plan["periodo_seguimiento_id"] = periodoSeguimiento[0]
 
-						if fmt.Sprintf("%v", periodo[0]) != "map[]" {
-							var resEstado map[string]interface{}
+							if fmt.Sprintf("%v", periodo[0]) != "map[]" {
+								var resEstado map[string]interface{}
 
-							if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento/"+plan["estado_seguimiento_id"].(string), &resEstado); err == nil {
-								plan["estado_seguimiento_id"] = resEstado["Data"]
+								if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento/"+plan["estado_seguimiento_id"].(string), &resEstado); err == nil {
+									plan["estado_seguimiento_id"] = resEstado["Data"]
 
-								if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan["plan_id"].(string), &resEstado); err == nil {
-									plan["plan_id"] = resEstado["Data"]
+									if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan["plan_id"].(string), &resEstado); err == nil {
+										plan["plan_id"] = resEstado["Data"]
 
-									auxPlanes = append(auxPlanes, plan)
+										mutex.Lock()
+										auxPlanes = append(auxPlanes, plan)
+										mutex.Unlock()
+									}
 								}
 							}
+						} else {
+							logs.Error("Error -->", err)
+							return errors.New(err.Error())
 						}
-					} else {
-						logs.Error("Error -->", err)
-						return nil, errors.New(err.Error())
 					}
+				} else {
+					logs.Error("Error -->", err)
+					return errors.New(err.Error())
 				}
-			} else {
-				logs.Error("Error -->", err)
-				return nil, errors.New(err.Error())
-			}
+				return nil
+			})
 		}
+
+		if err := wge.Wait(); err != nil {
+			return nil, errors.New(err.Error())
+		}
+
 		if auxPlanes != nil {
+			// Ordenar auxPlanes por periodo_nombre antes de devolver
+			sort.SliceStable(auxPlanes, func(i, j int) bool {
+				return auxPlanes[i]["periodo_seguimiento_id"].(map[string]interface{})["periodo_nombre"].(string) <
+					auxPlanes[j]["periodo_seguimiento_id"].(map[string]interface{})["periodo_nombre"].(string)
+			})
 			return auxPlanes, nil
 		} else {
 			return []int{}, nil

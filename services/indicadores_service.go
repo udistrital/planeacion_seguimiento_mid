@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
 	"github.com/udistrital/utils_oas/request"
+	"golang.org/x/sync/errgroup"
 )
 
 func ConsultarIndicadores(plan_identificador string) (interface{}, error) {
@@ -17,34 +19,48 @@ func ConsultarIndicadores(plan_identificador string) (interface{}, error) {
 	var subgrupos []map[string]interface{}
 	var hijos []map[string]interface{}
 	var indicadores []map[string]interface{}
+	wge := new(errgroup.Group)
+	var mutex sync.Mutex
 
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo?query=padre:"+plan_identificador, &respuesta); err == nil {
 		request.LimpiezaRespuestaRefactor(respuesta, &subgrupos)
 
 		for i := 0; i < len(subgrupos); i++ {
-			if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "indicador") {
-				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+subgrupos[i]["_id"].(string), &respuesta); err == nil {
-					request.LimpiezaRespuestaRefactor(respuesta, &hijos)
+			i := i
+			wge.Go(func() error {
+				if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "indicador") {
+					if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+subgrupos[i]["_id"].(string), &respuesta); err == nil {
+						request.LimpiezaRespuestaRefactor(respuesta, &hijos)
 
-					for j := range hijos {
-						if strings.Contains(strings.ToLower(hijos[j]["nombre"].(string)), "indicador") {
-							aux := hijos[j]
-							indicadores = append(indicadores, aux)
+						for j := range hijos {
+							if strings.Contains(strings.ToLower(hijos[j]["nombre"].(string)), "indicador") {
+								aux := hijos[j]
+								mutex.Lock()
+								indicadores = append(indicadores, aux)
+								mutex.Unlock()
+							}
 						}
-					}
 
-					return indicadores, nil
-				} else {
-					logs.Error("Error --> ", err)
-					return nil, errors.New(err.Error())
+						// return indicadores, nil
+						return nil
+					} else {
+						logs.Error("Error --> ", err)
+						return errors.New(err.Error())
+					}
 				}
-			}
+				return nil
+			})
 		}
+
+		if err := wge.Wait(); err != nil {
+			return nil, errors.New(err.Error())
+		}
+
 	} else {
 		logs.Error("Error --> ", err)
 		return nil, errors.New(err.Error())
 	}
-	return nil, nil
+	return indicadores, nil
 }
 
 func ConsultarAvanceIndicador(requestBody []byte) (interface{}, error) {
