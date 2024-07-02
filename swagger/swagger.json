@@ -479,6 +479,34 @@
                 }
             }
         },
+        "/reformulacion/": {
+            "post": {
+                "tags": [
+                    "reformulacion"
+                ],
+                "description": "Solicitud de reformulacion para un plan de acción",
+                "operationId": "ReformulacionController.SolicitudReformulacion",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for reformulacion content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/reportes/actividad/{index}": {
             "put": {
                 "tags": [
@@ -964,6 +992,10 @@
         {
             "name": "periodos",
             "description": "PeriodosController operations for Periodos\n"
+        },
+        {
+            "name": "reformulacion",
+            "description": "ReformulacionController operations for Reformulacion\n"
         }
     ]
 }

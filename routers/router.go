@@ -44,6 +44,11 @@ func init() {
 				&controllers.PeriodosController{},
 			),
 		),
+		beego.NSNamespace("/reformulacion",
+			beego.NSInclude(
+				&controllers.ReformulacionController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
