@@ -20,7 +20,7 @@ func SolicitarReformulacion(requestBody []byte) (map[string]interface{}, error) 
 
 	json.Unmarshal(requestBody, &body)
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro/?query=CodigoAbreviacion:RPA-F&fields=Id", &respuesta); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro/?query=CodigoAbreviacion:RPA-F-SP&fields=Id", &respuesta); err == nil {
 		request.LimpiezaRespuestaRefactor(respuesta, &estadoFormulado)
 	} else {
 		logs.Error("Error -->", err)
