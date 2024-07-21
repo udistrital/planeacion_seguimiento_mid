@@ -1019,7 +1019,7 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 	}
 
 	// Creacion de reportes de seguimiento
-	tipo := "61f236f525e40c582a0840d0"
+	tipo := "61f236f525e40c582a0840d0" // Seguimiento
 	var resPadres map[string]interface{}
 	var resDependencia []map[string]interface{}
 	var resTrimestres map[string]interface{}
