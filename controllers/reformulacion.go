@@ -36,3 +36,47 @@ func (c *ReformulacionController) SolicitudReformulacion() {
 	}
 	c.ServeJSON()
 }
+
+// ValidacionReformulacion ...
+// @Title ValidacionReformulacion
+// @Description Validación de la habilidad para realizar una reformulacion para un plan de acción
+// @Param	body		body 	{}	true		"body for reformulacion content"
+// @Success 200
+// @Failure 404
+// @router /validar/:plan_id [get]
+func (c *ReformulacionController) ValidacionReformulacion() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	planIdentificador := c.Ctx.Input.Param(":plan_id")
+
+	if resultado, err := services.ValidacionReformulacion(planIdentificador); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 400, nil, err.Error())
+	}
+	c.ServeJSON()
+}
+
+// AprobarReformulacion ...
+// @Title AprobarReformulacion
+// @Description Aprobación de una reformulacion para un plan de acción
+// @Param	body		body 	{}	true		"body for reformulacion content"
+// @Success 200
+// @Failure 404
+// @router /validar/:reformulacion_id [get]
+func (c *ReformulacionController) AprobarReformulacion() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	planIdentificador := c.Ctx.Input.Param(":reformulacion_id")
+
+	if resultado, err := services.AprobarReformulacion(planIdentificador); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(500)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 500, nil, err.Error())
+	}
+	c.ServeJSON()
+}
