@@ -14,7 +14,7 @@ import (
 func ObtenerPeriodoUltimoReporte(planId string) (map[string]interface{}, string, error) {
 	var resPlan map[string]interface{}
 	var plan map[string]interface{}
-	indiceUltimoTrimestre := -1
+	indiceUltimoTrimestreAvalado := -1
 
 	// Get plan
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+planId, &resPlan); err != nil {
@@ -31,9 +31,9 @@ func ObtenerPeriodoUltimoReporte(planId string) (map[string]interface{}, string,
 	for i, trimestre := range trimestres {
 		seguimiento, err := ConsultarEstadoTrimestre(planId, trimestre["ParametroId"].(map[string]interface{})["CodigoAbreviacion"].(string))
 		if err == nil {
-			if fmt.Sprintf("%v", seguimiento.(map[string]interface{})["dato"]) != "{}" {
-				if indiceUltimoTrimestre == i-1 {
-					indiceUltimoTrimestre = i
+			if fmt.Sprintf("%v", seguimiento.(map[string]interface{})["dato"]) != "{}" && seguimiento.(map[string]interface{})["estado_seguimiento_id"].(map[string]interface{})["codigo_abreviacion"].(string) == "AV" {
+				if indiceUltimoTrimestreAvalado == i-1 {
+					indiceUltimoTrimestreAvalado = i
 				} else {
 					return nil, "", errors.New("los seguimientos de los trimestres no han sido diligenciados en el orden correcto")
 				}
@@ -43,12 +43,12 @@ func ObtenerPeriodoUltimoReporte(planId string) (map[string]interface{}, string,
 		}
 	}
 
-	if indiceUltimoTrimestre == 3 {
+	if indiceUltimoTrimestreAvalado == 3 {
 		return nil, "", errors.New("no hay trimestres a los cuales se les pueda aplicar la reformulación")
 	}
 	// Guarda el trimestre desde el cual hará el siguiente seguimiento
-	indiceUltimoTrimestre = indiceUltimoTrimestre + 1
-	return plan, trimestres[indiceUltimoTrimestre]["ParametroId"].(map[string]interface{})["CodigoAbreviacion"].(string), nil
+	indiceUltimoTrimestreAvalado = indiceUltimoTrimestreAvalado + 1
+	return plan, trimestres[indiceUltimoTrimestreAvalado]["ParametroId"].(map[string]interface{})["CodigoAbreviacion"].(string), nil
 }
 
 func SolicitarReformulacion(requestBody []byte) (map[string]interface{}, error) {
