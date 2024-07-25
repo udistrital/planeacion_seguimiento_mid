@@ -65,7 +65,7 @@ func (c *ReformulacionController) ValidacionReformulacion() {
 // @Param	body		body 	{}	true		"body for reformulacion content"
 // @Success 200
 // @Failure 404
-// @router /validar/:reformulacion_id [get]
+// @router /aprobar/:reformulacion_id [get]
 func (c *ReformulacionController) AprobarReformulacion() {
 	defer errorhandler.HandlePanic(&c.Controller)
 

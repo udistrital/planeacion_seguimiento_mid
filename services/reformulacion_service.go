@@ -131,49 +131,25 @@ func ValidacionReformulacion(planIdentificador string) (map[string]interface{}, 
 func AprobarReformulacion(reformulacionId string) (map[string]interface{}, error) {
 	var reformulacion map[string]interface{}
 	var estadoAprobado []map[string]interface{}
-	var respuesta map[string]interface{}
+	var respuestaReformulacion map[string]interface{}
+	var respuestaVersionadoPlan map[string]interface{}
 	var resultadoModificacionReformulacion map[string]interface{}
-	var resultadoClonacionPlan map[string]interface{}
-	var cuerpoPeticionClonacionFormato map[string]interface{}
-	var modificacionReformulacion map[string]interface{}
-	var resultadoModificacionPlanPadre map[string]interface{}
+	var reformulacionModificada map[string]interface{}
 
 	// Obtiene la reformulacion
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/reformulacion/"+reformulacionId, &respuesta); err == nil {
-		request.LimpiezaRespuestaRefactor(respuesta, &reformulacion)
-	} else {
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/reformulacion/"+reformulacionId, &respuestaReformulacion); err != nil {
 		logs.Error("Error -->", err)
 		return nil, errors.New(err.Error())
 	}
+	request.LimpiezaRespuestaRefactor(respuestaReformulacion, &reformulacion)
 
 	// Obtiene el último periodo del trimestre que tuvo valores ingresados en seguimiento
-	planPadre, _, err := ObtenerPeriodoUltimoReporte(reformulacion["plan_id"].(string))
-	if err != nil {
+	if _, _, err := ObtenerPeriodoUltimoReporte(reformulacion["plan_id"].(string)); err != nil {
+		logs.Error("Error -->", err)
 		return nil, errors.New("error del servicio SolicitarReformulacion: Error al obtener el último seguimiento")
 	}
-	cuerpoPeticionClonacionFormato = make(map[string]interface{})
-	cuerpoPeticionClonacionFormato["nombre"] = "" + planPadre["nombre"].(string)
-	cuerpoPeticionClonacionFormato["descripcion"] = planPadre["descripcion"].(string)
-	cuerpoPeticionClonacionFormato["tipo_plan_id"] = planPadre["tipo_plan_id"].(string)
-	cuerpoPeticionClonacionFormato["aplicativo_id"] = planPadre["aplicativo_id"].(string)
-	cuerpoPeticionClonacionFormato["activo"] = planPadre["activo"]
-	cuerpoPeticionClonacionFormato["reformulacion"] = true
-	if err := request.SendJson("http://"+beego.AppConfig.String("FormulacionService")+"/formulacion/formato/"+reformulacion["plan_id"].(string)+"/clonar", "POST", &resultadoClonacionPlan, cuerpoPeticionClonacionFormato); err == nil {
-		request.LimpiezaRespuestaRefactor(resultadoClonacionPlan, &cuerpoPeticionClonacionFormato)
-	} else {
-		logs.Error("Error -->", err)
-		return nil, errors.New(err.Error())
-	}
 
-	// Modifica el estado activo del plan padre
-	cuerpoPlanPadre := make(map[string]interface{})
-	for k, v := range planPadre {
-		cuerpoPlanPadre[k] = v
-	}
-	cuerpoPlanPadre["activo"] = false
-	if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+reformulacion["plan_id"].(string), "PUT", &resultadoModificacionPlanPadre, cuerpoPlanPadre); err == nil {
-		request.LimpiezaRespuestaRefactor(resultadoModificacionPlanPadre, &cuerpoPlanPadre)
-	} else {
+	if err := request.SendJson("http://"+beego.AppConfig.String("FormulacionService")+"/formulacion/plan/"+reformulacion["plan_id"].(string)+"/versionar", "POST", &respuestaVersionadoPlan, map[string]interface{}{}); err != nil {
 		logs.Error("Error -->", err)
 		return nil, errors.New(err.Error())
 	}
@@ -181,23 +157,22 @@ func AprobarReformulacion(reformulacionId string) (map[string]interface{}, error
 	// Modifica la reformulacion
 
 	// Obtiene el estado de Reformulación de Plan de Acción Aprobado
-	if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro/?query=CodigoAbreviacion:RPA-A-SP&fields=Id", &respuesta); err == nil {
-		request.LimpiezaRespuestaRefactor(respuesta, &estadoAprobado)
-	} else {
+	if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro/?query=CodigoAbreviacion:RPA-A-SP&fields=Id", &respuestaReformulacion); err != nil {
 		logs.Error("Error -->", err)
 		return nil, errors.New(err.Error())
 	}
+	request.LimpiezaRespuestaRefactor(respuestaReformulacion, &estadoAprobado)
 	cuerpoReformulacion := make(map[string]interface{})
 	for k, v := range reformulacion {
 		cuerpoReformulacion[k] = v
 	}
-	cuerpoReformulacion["estado_id"] = estadoAprobado[0]["Id"].(int)
+	cuerpoReformulacion["estado_id"] = estadoAprobado[0]["Id"].(float64)
 
-	if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/reformulacion/", "PUT", &resultadoModificacionReformulacion, cuerpoReformulacion); err == nil {
-		request.LimpiezaRespuestaRefactor(resultadoModificacionReformulacion, &modificacionReformulacion)
-	} else {
+	if err := request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/reformulacion/"+reformulacionId, "PUT", &resultadoModificacionReformulacion, cuerpoReformulacion); err != nil {
 		logs.Error("Error -->", err)
 		return nil, errors.New(err.Error())
 	}
-	return modificacionReformulacion, nil
+	request.LimpiezaRespuestaRefactor(resultadoModificacionReformulacion, &reformulacionModificada)
+
+	return reformulacionModificada, nil
 }

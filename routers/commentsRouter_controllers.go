@@ -117,8 +117,8 @@ func init() {
 
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReformulacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReformulacionController"],
         beego.ControllerComments{
-            Method: "ValidacionReformulacion",
-            Router: "/validar/:plan_id",
+            Method: "AprobarReformulacion",
+            Router: "/aprobar/:reformulacion_id",
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
@@ -126,8 +126,8 @@ func init() {
 
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReformulacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReformulacionController"],
         beego.ControllerComments{
-            Method: "AprobarReformulacion",
-            Router: "/validar/:reformulacion_id",
+            Method: "ValidacionReformulacion",
+            Router: "/validar/:plan_id",
             AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
