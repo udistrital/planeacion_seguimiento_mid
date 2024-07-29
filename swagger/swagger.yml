@@ -63,6 +63,41 @@ paths:
             $ref: '#/definitions/models.Seguimiento'
         "404":
           description: ""
+  /actividades/retornar_jefe_dependencia/{plan_id}/{index}/{trimestre}:
+    put:
+      tags:
+      - actividades
+      description: Retorna la actividad de Avalado a en Revision
+      operationId: ActividadesController.RetornarActividadJefeDependencia
+      parameters:
+      - in: path
+        name: plan_id
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "403":
+          description: :plan_id is empty
   /actividades/revision/{planId}/{index}/{trimestre}:
     put:
       tags:
@@ -98,6 +133,41 @@ paths:
             $ref: '#/definitions/models.Seguimiento'
         "404":
           description: ""
+  /actividades/revision_jefe_dependencia/{plan_id}/{index}/{trimestre}:
+    put:
+      tags:
+      - actividades
+      description: put Seguimiento by id
+      operationId: ActividadesController.RevisarActividadJefeDependencia
+      parameters:
+      - in: path
+        name: plan_id
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: index
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: path
+        name: trimestre
+        description: The key for staticblock
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Plan content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "403":
+          description: :plan_id is empty
   /detalles/cualitativo/{planId}/{index}/{trimestre}:
     put:
       tags:
@@ -248,6 +318,24 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
+        "404":
+          description: ""
+  /reformulacion/:
+    post:
+      tags:
+      - reformulacion
+      description: Solicitud de reformulacion para un plan de acción
+      operationId: ReformulacionController.SolicitudReformulacion
+      parameters:
+      - in: body
+        name: body
+        description: body for reformulacion content
+        required: true
+        schema:
+          $ref: '#/definitions/{}'
+      responses:
+        "201":
           description: ""
         "404":
           description: ""
@@ -503,6 +591,25 @@ paths:
           description: ""
         "400":
           description: ""
+  /seguimiento/revision_jefe_dependencia/{id}:
+    put:
+      tags:
+      - seguimiento
+      description: put Seguimiento by id
+      operationId: SeguimientoController.RevisarSeguimiento
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "403":
+          description: :id is empty
   /seguimiento/verificacion/{id}:
     put:
       tags:
@@ -556,3 +663,6 @@ tags:
 - name: periodos
   description: |
     PeriodosController operations for Periodos
+- name: reformulacion
+  description: |
+    ReformulacionController operations for Reformulacion

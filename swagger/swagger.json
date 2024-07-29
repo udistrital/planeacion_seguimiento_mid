@@ -67,6 +67,58 @@
                 }
             }
         },
+        "/actividades/retornar_jefe_dependencia/{plan_id}/{index}/{trimestre}": {
+            "put": {
+                "tags": [
+                    "actividades"
+                ],
+                "description": "Retorna la actividad de Avalado a en Revision",
+                "operationId": "ActividadesController.RetornarActividadJefeDependencia",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "plan_id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "index",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "trimestre",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Plan content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Seguimiento"
+                        }
+                    },
+                    "403": {
+                        "description": ":plan_id is empty"
+                    }
+                }
+            }
+        },
         "/actividades/revision/{planId}/{index}/{trimestre}": {
             "put": {
                 "tags": [
@@ -115,6 +167,58 @@
                     },
                     "404": {
                         "description": ""
+                    }
+                }
+            }
+        },
+        "/actividades/revision_jefe_dependencia/{plan_id}/{index}/{trimestre}": {
+            "put": {
+                "tags": [
+                    "actividades"
+                ],
+                "description": "put Seguimiento by id",
+                "operationId": "ActividadesController.RevisarActividadJefeDependencia",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "plan_id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "index",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "trimestre",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Plan content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Seguimiento"
+                        }
+                    },
+                    "403": {
+                        "description": ":plan_id is empty"
                     }
                 }
             }
@@ -375,6 +479,34 @@
                 }
             }
         },
+        "/reformulacion/": {
+            "post": {
+                "tags": [
+                    "reformulacion"
+                ],
+                "description": "Solicitud de reformulacion para un plan de acción",
+                "operationId": "ReformulacionController.SolicitudReformulacion",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for reformulacion content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/reportes/actividad/{index}": {
             "put": {
                 "tags": [
@@ -534,6 +666,35 @@
                     },
                     "400": {
                         "description": ""
+                    }
+                }
+            }
+        },
+        "/seguimiento/revision_jefe_dependencia/{id}": {
+            "put": {
+                "tags": [
+                    "seguimiento"
+                ],
+                "description": "put Seguimiento by id",
+                "operationId": "SeguimientoController.RevisarSeguimiento",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Seguimiento"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
                     }
                 }
             }
@@ -831,6 +992,10 @@
         {
             "name": "periodos",
             "description": "PeriodosController operations for Periodos\n"
+        },
+        {
+            "name": "reformulacion",
+            "description": "ReformulacionController operations for Reformulacion\n"
         }
     ]
 }

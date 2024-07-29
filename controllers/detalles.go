@@ -41,7 +41,7 @@ func (c *DetallesController) GuardarDocumentos() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 
 	c.ServeJSON()
@@ -68,7 +68,7 @@ func (c *DetallesController) GuardarCualitativo() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 
 	c.ServeJSON()
@@ -95,7 +95,7 @@ func (c *DetallesController) GuardarCuantitativo() {
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
 	} else {
 		c.Ctx.Output.SetStatus(404)
-		c.Data["json"] = requestresponse.APIResponseDTO(true, 404, nil, err.Error())
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
 	}
 	c.ServeJSON()
 }
