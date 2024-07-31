@@ -5,6 +5,7 @@ import (
 
 	apistatus "github.com/udistrital/utils_oas/apiStatusLib"
 	xray "github.com/udistrital/utils_oas/xray"
+	auditoria "github.com/udistrital/utils_oas/auditoria"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/plugins/cors"
@@ -35,5 +36,6 @@ func main() {
 	xray.InitXRay()
 	beego.ErrorController(&customerrorv2.CustomErrorController{})
 	apistatus.Init()
+	auditoria.InitMiddleware()
 	beego.Run()
 }
