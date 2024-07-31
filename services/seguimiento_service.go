@@ -112,6 +112,9 @@ func ConsultarSeguimiento(planIdentificador string, indiceActividad string, trim
 	var trimestre string
 	dato := make(map[string]interface{})
 
+	id_actividad_decoded := planIdentificador + "" + indiceActividad
+	id_actividad := helpers.EncodeBase62(id_actividad_decoded)
+
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+planIdentificador+",periodo_seguimiento_id:"+trimestreIdentificador, &respuesta); err == nil {
 		aux := make([]map[string]interface{}, 1)
 		request.LimpiezaRespuestaRefactor(respuesta, &aux)
@@ -137,6 +140,7 @@ func ConsultarSeguimiento(planIdentificador string, indiceActividad string, trim
 		actividad, _ := json.Marshal(consultarActividad(seguimiento, indiceActividad, trimestre))
 		json.Unmarshal([]byte(string(actividad)), &seguimientoActividad)
 		seguimientoActividad["_id"] = seguimiento["_id"].(string)
+		seguimientoActividad["id_actividad"] = id_actividad
 
 		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/estado-seguimiento/"+seguimiento["estado_seguimiento_id"].(string), &respuestaEstado); err == nil {
 			seguimientoActividad["estadoSeguimiento"] = respuestaEstado["Data"].(map[string]interface{})["nombre"].(string)

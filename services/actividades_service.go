@@ -88,6 +88,28 @@ func ConsultarActividadesGenerales(seguimiento_identificador string) ([]map[stri
 									}
 								}
 							}
+
+							// Añadir el planId-index a cada actividad y mantener el index individual
+							for _, actividad := range actividades {
+								var actividadID string
+								if index, ok := actividad["index"].(float64); ok {
+									actividadID = fmt.Sprintf("%s%d", planIdentificador, int(index))
+								} else if indexStr, ok := actividad["index"].(string); ok {
+									actividadID = fmt.Sprintf("%s%s", planIdentificador, indexStr)
+								}
+
+								// Codificar actividadID en Base64 usando el helper
+								encodedID := helpers.EncodeBase62(actividadID)
+
+								actividad["id_actividad"] = encodedID
+
+								// Decodificar el id_actividad codificado para verificar
+								// decodedID := seguimientohelper.DecodeBase62(encodedID)
+								// actividad["id_actividad_decoded"] = decodedID
+								// actividad["planId"] = actividadID
+
+							}
+
 							resultado = actividades
 							return nil
 							// return actividades, nil
