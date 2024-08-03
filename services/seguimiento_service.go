@@ -512,7 +512,7 @@ func consultarCuantitativoPlan(seguimiento map[string]interface{}, indice string
 	var hijos []interface{}
 	var subgrupos []map[string]interface{}
 	var indicadores []map[string]interface{}
-	var respuestas []map[string]interface{}
+	respuestas := make([]map[string]interface{}, 0)
 	response := map[string]interface{}{}
 
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+seguimiento["plan_id"].(string), &respuestaInformacion); err == nil {
