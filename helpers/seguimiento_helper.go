@@ -51,10 +51,9 @@ func EncodeBase62(actividadID string) string {
 	base := big.NewInt(62)
 
 	for num.Cmp(zero) > 0 {
-		var quotient, remainder big.Int
+		var remainder big.Int
 		num.DivMod(num, base, &remainder)
 		encoded = string(charset[remainder.Int64()]) + encoded
-		fmt.Println(quotient.Int64())
 	}
 
 	return encoded
