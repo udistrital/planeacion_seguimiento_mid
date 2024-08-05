@@ -13,6 +13,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/logs"
+	comunhelper "github.com/udistrital/planeacion_mid/helpers/comunHelper"
 	"github.com/udistrital/planeacion_seguimiento_mid/helpers"
 	"github.com/udistrital/utils_oas/request"
 	"golang.org/x/sync/errgroup"
@@ -945,7 +946,7 @@ func EstadoTrimestres(planId string) (interface{}, error) {
 	}
 }
 
-func ConsultarEstadoTrimestre(planIdentificador string, trimestre string) (interface{}, error) {
+func ConsultarEstadoTrimestre(planIdentificador string, trimestre string) (map[string]interface{}, error) {
 	var respuestaSeguimiento map[string]interface{}
 	var respuestaPeriodoSeguimiento map[string]interface{}
 	var respuestaPeriodo map[string]interface{}
@@ -1427,4 +1428,162 @@ func seguimientoVerificable(seguimiento map[string]interface{}) (bool, bool, map
 	}
 
 	return avaladas, observaciones, nil
+}
+
+func ObtenerPromedioBrechayEstado(requestBody []byte) (respuesta []map[string]interface{}, outputError error) {
+	var body map[string]interface{}
+	var trimestres []map[string]interface{}
+
+	if err := json.Unmarshal(requestBody, &body); err == nil {
+		nombrePlan := body["nombre"].(string)
+		id := body["id"].(string)
+		vigencia := body["vigencia"].(string)
+		dependencia := body["dependencia"].(string)
+
+		periodos, _ := ConsultarTrimestres(vigencia)
+		if len(periodos) == 0 {
+			outputError = errors.New("error del servicio ObtenerPromedioBrechayEstado: El plan no tiene definido Trimestres")
+			return nil, outputError
+		}
+
+		for _, periodo := range periodos {
+			trimestre := map[string]interface{}{
+				"codigo": periodo["ParametroId"].(map[string]interface{})["CodigoAbreviacion"],
+				"nombre": periodo["ParametroId"].(map[string]interface{})["Nombre"],
+			}
+			trimestres = append(trimestres, trimestre)
+		}
+
+		for _, tr := range trimestres {
+			estado, err := ConsultarEstadoTrimestre(id, tr["codigo"].(string))
+			if err != nil {
+				logs.Error("Error --> ", err)
+				return nil, errors.New(err.Error())
+			}
+			tr["estado"] = estado["estado_seguimiento_id"].(map[string]interface{})["nombre"]
+		}
+
+		unidades, errUnd := comunhelper.GetUnidadesPorPlanYVigencia(nombrePlan, vigencia)
+		if errUnd != nil {
+			logs.Error("Error --> ", errUnd)
+			return nil, fmt.Errorf("error al obtener unidades: %v", errUnd)
+		}
+		if len(unidades) != 0 {
+			planesPeriodo, errPer := comunhelper.GetPlanesPeriodo(dependencia, vigencia)
+			if errPer != nil {
+				logs.Error("Error --> ", errPer)
+				return nil, fmt.Errorf("error al obtener periodos: %v", errPer)
+			}
+
+			var planEspecifico map[string]interface{}
+			for _, item := range planesPeriodo {
+				if item["plan"] == nombrePlan {
+					planEspecifico = item
+				}
+			}
+			if planEspecifico != nil {
+				pers := planEspecifico["periodos"].([]map[string]interface{})
+				ultimoPeriodo := pers[len(pers)-1]
+				ultimoPeriodoID := ultimoPeriodo["id"].(string)
+
+				periodosPlan := comunhelper.GetPeriodosPlan(vigencia, id)
+				if len(periodosPlan) == 0 {
+					outputError = errors.New("error del servicio ObtenerPromedioBrechayEstado: El plan no posee trimestres")
+					return nil, outputError
+				} else {
+					var evaluacion []map[string]interface{}
+					for posicionTri, tri := range periodosPlan {
+						if tri["_id"] == ultimoPeriodoID {
+							evaluacion = comunhelper.GetEvaluacion(planEspecifico["id"].(string), periodosPlan, posicionTri)
+							break
+						}
+					}
+					if evaluacion == nil {
+						outputError = errors.New("error del servicio ObtenerPromedioBrechayEstado: El plan no posee evaluacion")
+						return nil, outputError
+					}
+					var brechasT1 []float64
+					var brechasT2 []float64
+					var brechasT3 []float64
+					var brechasT4 []float64
+					for _, eval := range evaluacion {
+						if eval["trimestre1"] != nil && eval["trimestre1"].(map[string]interface{})["actividad"] != "" && len(eval["trimestre1"].(map[string]interface{})) > 0 {
+							brechasT1 = append(brechasT1, eval["trimestre1"].(map[string]interface{})["actividad"].(float64))
+						}
+						if eval["trimestre2"] != nil && eval["trimestre2"].(map[string]interface{})["actividad"] != "" && len(eval["trimestre2"].(map[string]interface{})) > 0 {
+							brechasT2 = append(brechasT2, eval["trimestre2"].(map[string]interface{})["actividad"].(float64))
+						}
+						if eval["trimestre3"] != nil && eval["trimestre3"].(map[string]interface{})["actividad"] != "" && len(eval["trimestre3"].(map[string]interface{})) > 0 {
+							brechasT3 = append(brechasT3, eval["trimestre3"].(map[string]interface{})["actividad"].(float64))
+						}
+						if eval["trimestre4"] != nil && eval["trimestre4"].(map[string]interface{})["actividad"] != "" && len(eval["trimestre4"].(map[string]interface{})) > 0 {
+							brechasT4 = append(brechasT4, eval["trimestre4"].(map[string]interface{})["actividad"].(float64))
+						}
+					}
+
+					for _, tr := range trimestres {
+						var suma float64 = 0
+						var prod float64 = 0
+						if tr["codigo"] == "T1" && len(brechasT1) != 0 {
+							for _, numero := range brechasT1 {
+								suma += numero
+							}
+							if len(brechasT1) > 0 {
+								prod = (1 - (suma / float64(len(brechasT1))))
+							}
+
+							prodFormatted := fmt.Sprintf("%.2f", prod*100)
+							tr["promedioBrechas"] = prodFormatted
+						} else if tr["codigo"] == "T2" && len(brechasT2) != 0 {
+							for _, numero := range brechasT2 {
+								suma += numero
+							}
+							if len(brechasT2) > 0 {
+								prod = (1 - (suma / float64(len(brechasT2))))
+							}
+
+							prodFormatted := fmt.Sprintf("%.2f", prod*100)
+							tr["promedioBrechas"] = prodFormatted
+						} else if tr["codigo"] == "T3" && len(brechasT3) != 0 {
+							for _, numero := range brechasT3 {
+								suma += numero
+							}
+							if len(brechasT3) > 0 {
+								prod = (1 - (suma / float64(len(brechasT3))))
+							}
+
+							prodFormatted := fmt.Sprintf("%.2f", prod*100)
+							tr["promedioBrechas"] = prodFormatted
+						} else if tr["codigo"] == "T4" && len(brechasT4) != 0 {
+							for _, numero := range brechasT4 {
+								suma += numero
+							}
+							if len(brechasT4) > 0 {
+								prod = (1 - (suma / float64(len(brechasT4))))
+							}
+
+							prodFormatted := fmt.Sprintf("%.2f", prod*100)
+							tr["promedioBrechas"] = prodFormatted
+						} else {
+							tr["promedioBrechas"] = 0
+						}
+					}
+				}
+
+			} else {
+				for _, tr := range trimestres {
+					tr["promedioBrechas"] = 0
+				}
+			}
+		} else {
+			for _, tr := range trimestres {
+				tr["promedioBrechas"] = 0
+			}
+		}
+	} else {
+		logs.Error("Error --> ", err)
+		return nil, errors.New(err.Error())
+	}
+
+	return trimestres, outputError
 }
