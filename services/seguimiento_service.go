@@ -1048,8 +1048,8 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 		for _, version := range versionesPlan {
 			if version["estado_plan_id"].(string) == id_estado_avalado && version["_id"].(string) != plan_id {
 				planPadre = version
-				esReformulacion = version["reformulacion"].(bool)
 			}
+			esReformulacion = version["reformulacion"].(bool)
 		}
 
 		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+planPadre["_id"].(string), &resSeguimientos); err == nil {
@@ -1086,66 +1086,71 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 				}
 			}
 
-			for _, seguimiento := range seguimientosVacios {
-				// ? Inactivar el actual
-				seguimiento["activo"] = false
-				request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
-				arrReportes = append(arrReportes, resActualizacion["Data"].(map[string]interface{}))
-				// ? Crear el nuevo
-				seguimiento["activo"] = true
-				seguimiento["plan_id"] = plan_id
-				delete(seguimiento, "_id")
-				request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &resCreacion, seguimiento)
-				arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
-			}
-
-			for _, seguimiento := range seguimientosLlenos {
-
-				dato = map[string]interface{}{}
-				datoStr := seguimiento["dato"].(string)
-				json.Unmarshal([]byte(datoStr), &dato)
-
-				listAct := make([]string, 0, len(dato))
-				for k := range dato {
-					listAct = append(listAct, k)
+			if esReformulacion {
+				// Actualizar el plan_id de los seguimientos sin llenar
+				for _, seguimiento := range seguimientosVacios {
+					seguimiento["plan_id"] = plan_id
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
+					arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
 				}
-				for _, idxAct := range listAct {
-					id, existe := dato[idxAct].(map[string]interface{})["id"].(string)
-					if existe && id != "" {
-						if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+id, &resSeguimientoDetalle); err == nil {
-							request.LimpiezaRespuestaRefactor(resSeguimientoDetalle, &detalle)
-							detalle = helpers.ConvertirStringJson(detalle)
-							// ? Inactivar el actual
-							detalle["activo"] = false
-							helpers.GuardarDetalleSeguimiento(detalle, true) // true => PUT
-							// ? crear el nuevo
-							detalle["activo"] = true
-							detalle["estado"] = estado
-							delete(detalle, "_id")
-							delete(detalle, "cuantitativo")
-							newDetalleId := helpers.GuardarDetalleSeguimiento(detalle, false) // false => POST
-							dato[idxAct].(map[string]interface{})["id"] = newDetalleId
+			} else {
+				for _, seguimiento := range seguimientosLlenos {
+
+					dato = map[string]interface{}{}
+					json.Unmarshal([]byte(seguimiento["dato"].(string)), &dato)
+
+					// Inactiva las actividades anteriores y crea la nueva actividad con el estado "En reporte"
+					listAct := make([]string, 0, len(dato))
+					for k := range dato {
+						listAct = append(listAct, k)
+					}
+					for _, idxAct := range listAct {
+						id, existe := dato[idxAct].(map[string]interface{})["id"].(string)
+						if existe && id != "" {
+							if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+id, &resSeguimientoDetalle); err == nil {
+								request.LimpiezaRespuestaRefactor(resSeguimientoDetalle, &detalle)
+								detalle = helpers.ConvertirStringJson(detalle)
+								// ? Inactivar el actual
+								detalle["activo"] = false
+								helpers.GuardarDetalleSeguimiento(detalle, true) // true => PUT
+								// ? crear el nuevo
+								detalle["activo"] = true
+								detalle["estado"] = estado
+								delete(detalle, "_id")
+								delete(detalle, "cuantitativo")
+								newDetalleId := helpers.GuardarDetalleSeguimiento(detalle, false) // false => POST
+								dato[idxAct].(map[string]interface{})["id"] = newDetalleId
+							}
 						}
 					}
-				}
 
-				// ? Inactiva el actual
-				seguimiento["activo"] = false
-				request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
-				arrReportes = append(arrReportes, resActualizacion["Data"].(map[string]interface{}))
+					// ? Inactiva el actual
+					seguimiento["activo"] = false
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
 
-				// ? crear el nuevo
-				seguimiento["activo"] = true
-				seguimiento["plan_id"] = plan_id
-				if !esReformulacion {
-					seguimiento["estado_seguimiento_id"] = "635c11e1e092c5fa5f099971" // En reporte
+					// ? crear el nuevo
+					seguimiento["activo"] = true
+					seguimiento["plan_id"] = plan_id
+					if !esReformulacion {
+						seguimiento["estado_seguimiento_id"] = "635c11e1e092c5fa5f099971" // En reporte
+					}
+					valor, _ := json.Marshal(dato)
+					seguimiento["dato"] = string(valor)
+					delete(seguimiento, "_id")
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &resCreacion, seguimiento)
+					arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
 				}
-				valor, _ := json.Marshal(dato)
-				str := string(valor)
-				seguimiento["dato"] = str
-				delete(seguimiento, "_id")
-				request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &resCreacion, seguimiento)
-				arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
+				for _, seguimiento := range seguimientosVacios {
+					// ? Inactivar el actual
+					seguimiento["activo"] = false
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
+					// ? Crear el nuevo
+					seguimiento["activo"] = true
+					seguimiento["plan_id"] = plan_id
+					delete(seguimiento, "_id")
+					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &resCreacion, seguimiento)
+					arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
+				}
 			}
 		}
 	}
