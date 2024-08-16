@@ -88,6 +88,28 @@ func ConsultarActividadesGenerales(seguimiento_identificador string) ([]map[stri
 									}
 								}
 							}
+
+							// Añadir el planId-index a cada actividad y mantener el index individual
+							for _, actividad := range actividades {
+								var actividadID string
+								if index, ok := actividad["index"].(float64); ok {
+									actividadID = fmt.Sprintf("%s%d", planIdentificador, int(index))
+								} else if indexStr, ok := actividad["index"].(string); ok {
+									actividadID = fmt.Sprintf("%s%s", planIdentificador, indexStr)
+								}
+
+								// Codificar actividadID en Base64 usando el helper
+								encodedID := helpers.EncodeBase62(actividadID)
+
+								actividad["id_actividad"] = encodedID
+
+								// Decodificar el id_actividad codificado para verificar
+								// decodedID := seguimientohelper.DecodeBase62(encodedID)
+								// actividad["id_actividad_decoded"] = decodedID
+								// actividad["planId"] = actividadID
+
+							}
+
 							resultado = actividades
 							return nil
 							// return actividades, nil
@@ -136,13 +158,13 @@ func RevisarActividad(requestBody []byte, planIdentificador string, indiceActivi
 	dato[indiceActividad] = body
 
 	// Cualitativo
-	if body["cualitativo"].(map[string]interface{})["observaciones"] != "" && body["cualitativo"].(map[string]interface{})["observaciones"] != "Sin observación" && body["cualitativo"].(map[string]interface{})["observaciones"] != nil {
+	if body["cualitativo"].(map[string]interface{})["observaciones_planeacion"] != "" && body["cualitativo"].(map[string]interface{})["observaciones_planeacion"] != "Sin observación" && body["cualitativo"].(map[string]interface{})["observaciones_planeacion"] != nil {
 		comentario = true
 	}
 
 	// Cuantitativo
 	for _, indicador := range body["cuantitativo"].(map[string]interface{})["indicadores"].([]interface{}) {
-		if indicador.(map[string]interface{})["observaciones"] != "" && indicador.(map[string]interface{})["observaciones"] != "Sin observación" && indicador.(map[string]interface{})["observaciones"] != nil {
+		if indicador.(map[string]interface{})["observaciones_planeacion"] != "" && indicador.(map[string]interface{})["observaciones_planeacion"] != "Sin observación" && indicador.(map[string]interface{})["observaciones_planeacion"] != nil {
 			comentario = true
 			break
 		}
@@ -372,13 +394,13 @@ func RevisarActividadJefeDependencia(plan_id string, indexActividad string, trim
 	dato[indexActividad] = body
 
 	// Cualitativo
-	if body["cualitativo"].(map[string]interface{})["observaciones"] != "" && body["cualitativo"].(map[string]interface{})["observaciones"] != "Sin observación" && body["cualitativo"].(map[string]interface{})["observaciones"] != nil {
+	if body["cualitativo"].(map[string]interface{})["observaciones_dependencia"] != "" && body["cualitativo"].(map[string]interface{})["observaciones_dependencia"] != "Sin observación" && body["cualitativo"].(map[string]interface{})["observaciones_dependencia"] != nil {
 		comentario = true
 	}
 
 	// Cuantitativo
 	for _, indicador := range body["cuantitativo"].(map[string]interface{})["indicadores"].([]interface{}) {
-		if indicador.(map[string]interface{})["observaciones"] != "" && indicador.(map[string]interface{})["observaciones"] != "Sin observación" && indicador.(map[string]interface{})["observaciones"] != nil {
+		if indicador.(map[string]interface{})["observaciones_dependencia"] != "" && indicador.(map[string]interface{})["observaciones_dependencia"] != "Sin observación" && indicador.(map[string]interface{})["observaciones_dependencia"] != nil {
 			comentario = true
 			break
 		}
