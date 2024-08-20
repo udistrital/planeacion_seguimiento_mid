@@ -15,6 +15,8 @@ type ReformulacionController struct {
 // URLMapping ...
 func (c *ReformulacionController) URLMapping() {
 	c.Mapping("SolicitudReformulacion", c.SolicitudReformulacion)
+	c.Mapping("ValidacionReformulacion", c.ValidacionReformulacion)
+	c.Mapping("AprobarReformulacion", c.AprobarReformulacion)
 }
 
 // SolicitudReformulacion ...

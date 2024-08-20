@@ -14,6 +14,7 @@ type SeguimientoController struct {
 
 // URLMapping ...
 func (c *SeguimientoController) URLMapping() {
+	c.Mapping("ObtenerSeguimientos", c.ObtenerSeguimientos)
 	c.Mapping("ConsultarSeguimiento", c.ConsultarSeguimiento)
 	c.Mapping("RevisarSeguimiento", c.RevisarSeguimiento)
 	c.Mapping("GuardarSeguimiento", c.GuardarSeguimiento)
@@ -23,6 +24,28 @@ func (c *SeguimientoController) URLMapping() {
 	c.Mapping("EstadoTrimestres", c.EstadoTrimestres)
 	c.Mapping("AvalarPlan", c.AvalarPlan)
 	c.Mapping("RevisarSeguimientoJefeDependencia", c.RevisarSeguimientoJefeDependencia)
+}
+
+// ObtenerSeguimientos ...
+// @Title ObtenerSeguimientos
+// @Description put Seguimiento by id
+// @Param	planId		path 	string	true		"The key for staticblock"
+// @Success 200 {object} models.Seguimiento
+// @Failure 404
+// @router /:planId [get]
+func (c *SeguimientoController) ObtenerSeguimientos() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	planIdentificador := c.Ctx.Input.Param(":planId")
+
+	if resultado, err := services.ObtenerSeguimientos(planIdentificador); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(404)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 404, nil, err.Error())
+	}
+	c.ServeJSON()
 }
 
 // GuardarSeguimiento ...

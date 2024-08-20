@@ -18,6 +18,40 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+func ObtenerSeguimientos(plan_id string) (interface{}, error) {
+	var respuestaPlan map[string]interface{}
+	var plan map[string]interface{}
+	var resVersiones map[string]interface{}
+	var versionesPlan []map[string]interface{}
+
+	var periodos []map[string]interface{}
+
+	// Obtener toda la información del plan
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan_id, &respuestaPlan); err != nil {
+		return nil, errors.New("error del servicio ObtenerSeguimientos: Error al consultar el plan")
+	}
+	request.LimpiezaRespuestaRefactor(respuestaPlan, &plan)
+
+	// Obtener diferentes versiones asociadas al plan
+	if err := request.GetJson("http://"+beego.AppConfig.String("FormulacionService")+"/formulacion/plan/versiones/"+plan["dependencia_id"].(string)+"/"+plan["vigencia"].(string)+"/"+url.QueryEscape(plan["nombre"].(string)), &resVersiones); err != nil {
+		return nil, errors.New("error del servicio AvalarPlan: Error al consultar las versiones de el plan")
+	}
+	request.LimpiezaRespuestaRefactor(resVersiones, &versionesPlan)
+
+	for _, version := range versionesPlan {
+		var resSeguimiento map[string]interface{}
+		var seguimientos []map[string]interface{}
+		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+`/seguimiento?query=activo:true,tipo_seguimiento_id:61f236f525e40c582a0840d0,plan_id:`+version["_id"].(string), &resSeguimiento); err != nil {
+			return nil, errors.New("error del servicio ObtenerSeguimientos: Error al consultar la reformulación del plan")
+		}
+		request.LimpiezaRespuestaRefactor(resSeguimiento, &seguimientos)
+		periodos = append(periodos, seguimientos...)
+	}
+
+	return periodos, nil
+
+}
+
 func GuardarSeguimiento(requestBody []byte, planIdentificador string, indiceActividad string, trimestre string) (interface{}, error) {
 	var body map[string]interface{}
 	var respuesta map[string]interface{}
@@ -270,7 +304,7 @@ func VerificarSeguimiento(idSeguimiento string) (interface{}, error) {
 	return seguimiento, nil
 }
 
-func consultarActividad(seguimiento map[string]interface{}, indice string, trimestre string) map[string]interface{} {
+func consultarActividad(seguimientos map[string]interface{}, indice string, trimestre string) map[string]interface{} {
 	var data map[string]interface{}
 	var respuestaEstado map[string]interface{}
 	var respuestaDetalle map[string]interface{}
@@ -283,7 +317,7 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 	detalle := map[string]interface{}{}
 	identificador := ""
 	dato := make(map[string]interface{})
-	datoStr := seguimiento["dato"].(string)
+	datoStr := seguimientos["dato"].(string)
 	json.Unmarshal([]byte(datoStr), &dato)
 
 	if dato[indice] != nil {
@@ -297,13 +331,13 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 					identificador = detalle["_id"].(string)
 
 					if len(detalle["informacion"].(map[string]interface{})) == 0 {
-						informacion, _ = consultarInformacionPlan(seguimiento, indice)
+						informacion, _ = consultarInformacionPlan(seguimientos, indice)
 					} else {
 						informacion = detalle["informacion"].(map[string]interface{})
 					}
 
 					if len(detalle["cuantitativo"].(map[string]interface{})) == 0 {
-						cuantitativo, _ = consultarCuantitativoPlan(seguimiento, indice, trimestre)
+						cuantitativo, _ = consultarCuantitativoPlan(seguimientos, indice, trimestre)
 					} else {
 						cuantitativo = detalle["cuantitativo"].(map[string]interface{})
 					}
@@ -332,13 +366,13 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 			}
 		} else {
 			if dato[indice].(map[string]interface{})["informacion"] == nil {
-				informacion, _ = consultarInformacionPlan(seguimiento, indice)
+				informacion, _ = consultarInformacionPlan(seguimientos, indice)
 			} else {
 				informacion = dato[indice].(map[string]interface{})["informacion"].(map[string]interface{})
 			}
 
 			if dato[indice].(map[string]interface{})["cuantitativo"] == nil {
-				cuantitativo, _ = consultarCuantitativoPlan(seguimiento, indice, trimestre)
+				cuantitativo, _ = consultarCuantitativoPlan(seguimientos, indice, trimestre)
 			} else {
 				cuantitativo = dato[indice].(map[string]interface{})["cuantitativo"].(map[string]interface{})
 			}
@@ -371,8 +405,8 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 				"id":     respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
 			}
 		}
-		informacion, _ = consultarInformacionPlan(seguimiento, indice)
-		cuantitativo, _ = consultarCuantitativoPlan(seguimiento, indice, trimestre)
+		informacion, _ = consultarInformacionPlan(seguimientos, indice)
+		cuantitativo, _ = consultarCuantitativoPlan(seguimientos, indice, trimestre)
 		cualitativo = map[string]interface{}{"reporte": "", "productos": "", "dificultades": ""}
 	}
 
@@ -392,7 +426,7 @@ func consultarActividad(seguimiento map[string]interface{}, indice string, trime
 	return data
 }
 
-func consultarInformacionPlan(seguimiento map[string]interface{}, indice string) (map[string]interface{}, error) {
+func consultarInformacionPlan(seguimientos map[string]interface{}, indice string) (map[string]interface{}, error) {
 	var respuestaPlan map[string]interface{}
 	var respuestaPeriodoSeguimiento map[string]interface{}
 	var respuestaPeriodo map[string]interface{}
@@ -413,7 +447,7 @@ func consultarInformacionPlan(seguimiento map[string]interface{}, indice string)
 		"unidad":      "",
 	}
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+seguimiento["plan_id"].(string), &respuestaPlan); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+seguimientos["plan_id"].(string), &respuestaPlan); err == nil {
 		informacion["nombre"] = respuestaPlan["Data"].(map[string]interface{})["nombre"]
 		informacion["unidad"] = respuestaPlan["Data"].(map[string]interface{})["dependencia_id"]
 	} else {
@@ -421,7 +455,7 @@ func consultarInformacionPlan(seguimiento map[string]interface{}, indice string)
 		return nil, errors.New(err.Error())
 	}
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento/"+seguimiento["periodo_seguimiento_id"].(string), &respuestaPeriodoSeguimiento); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento/"+seguimientos["periodo_seguimiento_id"].(string), &respuestaPeriodoSeguimiento); err == nil {
 		request.LimpiezaRespuestaRefactor(respuestaPeriodoSeguimiento, &periodoSeguimiento)
 
 		if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro_periodo?query=Id:"+periodoSeguimiento["periodo_id"].(string), &respuestaPeriodo); err == nil {
@@ -436,7 +470,7 @@ func consultarInformacionPlan(seguimiento map[string]interface{}, indice string)
 		return nil, errors.New(err.Error())
 	}
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+seguimiento["plan_id"].(string), &respuestaInformacion); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+seguimientos["plan_id"].(string), &respuestaInformacion); err == nil {
 		request.LimpiezaRespuestaRefactor(respuestaInformacion, &hijos)
 
 		for _, hijo := range hijos {
@@ -499,7 +533,7 @@ func consultarInformacionPlan(seguimiento map[string]interface{}, indice string)
 	return informacion, nil
 }
 
-func consultarCuantitativoPlan(seguimiento map[string]interface{}, indice string, trimestre string) (map[string]interface{}, error) {
+func consultarCuantitativoPlan(seguimientos map[string]interface{}, indice string, trimestre string) (map[string]interface{}, error) {
 	var respuestaInformacion map[string]interface{}
 	var respuestaDetalle map[string]interface{}
 	var hijos []interface{}
@@ -508,7 +542,7 @@ func consultarCuantitativoPlan(seguimiento map[string]interface{}, indice string
 	var respuestas []map[string]interface{}
 	response := map[string]interface{}{}
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+seguimiento["plan_id"].(string), &respuestaInformacion); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+seguimientos["plan_id"].(string), &respuestaInformacion); err == nil {
 		request.LimpiezaRespuestaRefactor(respuestaInformacion, &subgrupos)
 
 		for _, subgrupo := range subgrupos {
@@ -594,7 +628,7 @@ func consultarCuantitativoPlan(seguimiento map[string]interface{}, indice string
 							respuestas = append(respuestas, respuesta)
 						}
 
-						respuestasAnteriores, errorRespuestaAnterior := consultarRespuestaAnterior(seguimiento, len(indicadores)-1, respuestas, indice, trimestre)
+						respuestasAnteriores, errorRespuestaAnterior := consultarRespuestaAnterior(seguimientos, len(indicadores)-1, respuestas, indice, trimestre)
 						if errorRespuestaAnterior != nil {
 							logs.Error("Error --> ", errorRespuestaAnterior)
 							return nil, errors.New(errorRespuestaAnterior.Error())
@@ -619,7 +653,7 @@ func consultarCuantitativoPlan(seguimiento map[string]interface{}, indice string
 	return response, nil
 }
 
-func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, map[string]interface{}, error) {
+func seguimientoAvalable(seguimientos map[string]interface{}) (bool, bool, map[string]interface{}, error) {
 	var respuesta map[string]interface{}
 	var subgrupos []map[string]interface{}
 	var datoPlan map[string]interface{}
@@ -630,13 +664,13 @@ func seguimientoAvalable(seguimiento map[string]interface{}) (bool, bool, map[st
 	avaladas := false
 	estado := map[string]interface{}{}
 
-	planIdentificador := seguimiento["plan_id"].(string)
+	planIdentificador := seguimientos["plan_id"].(string)
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo?query=padre:"+planIdentificador, &respuesta); err == nil {
 		request.LimpiezaRespuestaRefactor(respuesta, &subgrupos)
 
 		for i := 0; i < len(subgrupos); i++ {
 			if strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "actividad") && strings.Contains(strings.ToLower(subgrupos[i]["nombre"].(string)), "general") {
-				dato_plan_str := seguimiento["dato"].(string)
+				dato_plan_str := seguimientos["dato"].(string)
 				json.Unmarshal([]byte(dato_plan_str), &datoPlan)
 
 				actividades, errActividades := ConsultarActividades(subgrupos[i]["_id"].(string))
@@ -1346,7 +1380,7 @@ func RevisarSeguimientoJefeDependencia(seguimiento_id string) (map[string]interf
 	}
 }
 
-func seguimientoVerificable(seguimiento map[string]interface{}) (bool, bool, map[string]interface{}) {
+func seguimientoVerificable(seguimientos map[string]interface{}) (bool, bool, map[string]interface{}) {
 	var res map[string]interface{}
 	var subgrupos []map[string]interface{}
 	var datoPlan map[string]interface{}
@@ -1357,7 +1391,7 @@ func seguimientoVerificable(seguimiento map[string]interface{}) (bool, bool, map
 	avaladas := false
 	estado := map[string]interface{}{}
 
-	planId := seguimiento["plan_id"].(string)
+	planId := seguimientos["plan_id"].(string)
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo?query=padre:"+planId, &res); err == nil {
 		request.LimpiezaRespuestaRefactor(res, &subgrupos)
 
@@ -1366,7 +1400,7 @@ func seguimientoVerificable(seguimiento map[string]interface{}) (bool, bool, map
 
 				actividades, errActividades := ConsultarActividades(subgrupos[i]["_id"].(string))
 				if errActividades == nil {
-					dato_plan_str := seguimiento["dato"].(string)
+					dato_plan_str := seguimientos["dato"].(string)
 					json.Unmarshal([]byte(dato_plan_str), &datoPlan)
 
 					for indexActividad, element := range datoPlan {
