@@ -484,6 +484,25 @@ paths:
             $ref: '#/definitions/models.Seguimiento'
         "404":
           description: :id is empty
+  /seguimiento/{planId}:
+    get:
+      tags:
+      - seguimiento
+      description: put Seguimiento by id
+      operationId: SeguimientoController.ObtenerSeguimientos
+      parameters:
+      - in: path
+        name: planId
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          schema:
+            $ref: '#/definitions/models.Seguimiento'
+        "404":
+          description: ""
   /seguimiento/{planId}/{indiceActividad}/{trimestreId}:
     get:
       tags:
