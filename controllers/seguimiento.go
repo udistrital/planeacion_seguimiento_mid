@@ -24,6 +24,7 @@ func (c *SeguimientoController) URLMapping() {
 	c.Mapping("EstadoTrimestres", c.EstadoTrimestres)
 	c.Mapping("AvalarPlan", c.AvalarPlan)
 	c.Mapping("RevisarSeguimientoJefeDependencia", c.RevisarSeguimientoJefeDependencia)
+	c.Mapping("ObtenerPromedioBrechayEstado", c.ObtenerPromedioBrechayEstado)
 }
 
 // ObtenerSeguimientos ...
@@ -258,6 +259,29 @@ func (c *SeguimientoController) RevisarSeguimientoJefeDependencia() {
 	if resultado, err := services.RevisarSeguimientoJefeDependencia(seguimiento_id); err == nil {
 		c.Ctx.Output.SetStatus(200)
 		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, resultado)
+	} else {
+		c.Ctx.Output.SetStatus(400)
+		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())
+	}
+
+	c.ServeJSON()
+}
+
+// ObtenerPromedioBrechayEstado ...
+// @Title ObtenerPromedioBrechayEstado
+// @Description post Brecha y Estado para Plan dado
+// @Param	body		body 	{}	true		"body for Plan content"
+// @Success 200
+// @Failure 404
+// @router /brecha-estado [post]
+func (c *SeguimientoController) ObtenerPromedioBrechayEstado() {
+	defer errorhandler.HandlePanic(&c.Controller)
+
+	body := c.Ctx.Input.RequestBody
+
+	if respuesta, err := services.ObtenerPromedioBrechayEstado(body); err == nil {
+		c.Ctx.Output.SetStatus(200)
+		c.Data["json"] = requestresponse.APIResponseDTO(true, 200, respuesta)
 	} else {
 		c.Ctx.Output.SetStatus(400)
 		c.Data["json"] = requestresponse.APIResponseDTO(false, 400, nil, err.Error())

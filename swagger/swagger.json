@@ -726,6 +726,34 @@
                 }
             }
         },
+        "/seguimiento/brecha-estado": {
+            "post": {
+                "tags": [
+                    "seguimiento"
+                ],
+                "description": "post Brecha y Estado para Plan dado",
+                "operationId": "SeguimientoController.ObtenerPromedioBrechayEstado",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Plan content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/seguimiento/revision_jefe_dependencia/{id}": {
             "put": {
                 "tags": [
