@@ -31,7 +31,7 @@ func ObtenerPeriodoUltimoReporte(planId string) (map[string]interface{}, string,
 	for i, trimestre := range trimestres {
 		seguimiento, err := ConsultarEstadoTrimestre(planId, trimestre["ParametroId"].(map[string]interface{})["CodigoAbreviacion"].(string))
 		if err == nil {
-			if fmt.Sprintf("%v", seguimiento.(map[string]interface{})["dato"]) != "{}" && seguimiento.(map[string]interface{})["estado_seguimiento_id"].(map[string]interface{})["codigo_abreviacion"].(string) == "AV" {
+			if fmt.Sprintf("%v", seguimiento["dato"]) != "{}" && seguimiento["estado_seguimiento_id"].(map[string]interface{})["codigo_abreviacion"].(string) == "AV" {
 				if indiceUltimoTrimestreAvalado == i-1 {
 					indiceUltimoTrimestreAvalado = i
 				} else {

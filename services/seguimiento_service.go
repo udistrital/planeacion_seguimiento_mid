@@ -1026,12 +1026,14 @@ func ConsultarEstadoTrimestre(planIdentificador string, trimestre string) (map[s
 func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes error) {
 	var resPlan map[string]interface{}
 	var plan map[string]interface{}
-	// var ultimoPlanConSeguimientos map[string]interface{}
 	var resVersiones map[string]interface{}
 	var versionesPlan []map[string]interface{}
 	esReformulacion := false
 	id_estado_avalado := "6153355601c7a2365b2fb2a1"
 	id_estado_preaval := "614d3b4401c7a222052fac05"
+
+	id_estado_seguimiento_avalado := "622ba49216511e93a95c326d"
+	id_estado_seguimiento_habilitado := "61f237df25e40c57a60840d5"
 
 	// Get plan
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan_id, &resPlan); err != nil {
@@ -1098,9 +1100,11 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 			}
 			for _, seguimiento := range seguimientos {
 				if (len(seguimientosLlenos) + len(seguimientosVacios)) <= 4 {
-					if fmt.Sprintf("%v", seguimiento["dato"]) != "{}" {
+					if fmt.Sprintf("%v", seguimiento["dato"]) != "{}" && seguimiento["estado_seguimiento_id"] == id_estado_seguimiento_avalado {
 						seguimientosLlenos = append(seguimientosLlenos, seguimiento)
 					} else {
+						seguimiento["dato"] = "{}"
+						seguimiento["estado_seguimiento_id"] = id_estado_seguimiento_habilitado
 						seguimientosVacios = append(seguimientosVacios, seguimiento)
 					}
 				} else {
