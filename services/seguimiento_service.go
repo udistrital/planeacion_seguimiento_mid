@@ -1035,6 +1035,8 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 	id_estado_seguimiento_avalado := "622ba49216511e93a95c326d"
 	id_estado_seguimiento_habilitado := "61f237df25e40c57a60840d5"
 
+	tipo := "61f236f525e40c582a0840d0" // Seguimiento
+
 	// Get plan
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan_id, &resPlan); err != nil {
 		errRes = errors.New("error del servicio AvalarPlan: Error al consultar plan")
@@ -1061,7 +1063,6 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 	}
 
 	// Creacion de reportes de seguimiento
-	tipo := "61f236f525e40c582a0840d0" // Seguimiento
 	var resDependencia []map[string]interface{}
 	var resTrimestres map[string]interface{}
 	var respuestaPost map[string]interface{}
@@ -1099,16 +1100,13 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 				nuevo = true
 			}
 			for _, seguimiento := range seguimientos {
-				if (len(seguimientosLlenos) + len(seguimientosVacios)) <= 4 {
-					if fmt.Sprintf("%v", seguimiento["dato"]) != "{}" && seguimiento["estado_seguimiento_id"] == id_estado_seguimiento_avalado {
-						seguimientosLlenos = append(seguimientosLlenos, seguimiento)
-					} else {
-						seguimiento["dato"] = "{}"
-						seguimiento["estado_seguimiento_id"] = id_estado_seguimiento_habilitado
-						seguimientosVacios = append(seguimientosVacios, seguimiento)
-					}
+				if fmt.Sprintf("%v", seguimiento["dato"]) != "{}" && seguimiento["estado_seguimiento_id"] == id_estado_seguimiento_avalado {
+					seguimientosLlenos = append(seguimientosLlenos, seguimiento)
 				} else {
-					break
+					seguimiento["plan_id"] = plan_id
+					seguimiento["dato"] = "{}"
+					seguimiento["estado_seguimiento_id"] = id_estado_seguimiento_habilitado
+					seguimientosVacios = append(seguimientosVacios, seguimiento)
 				}
 			}
 		}
@@ -1132,7 +1130,6 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 			if esReformulacion {
 				// Actualizar el plan_id de los seguimientos sin llenar
 				for _, seguimiento := range seguimientosVacios {
-					seguimiento["plan_id"] = plan_id
 					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
 					arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
 				}
