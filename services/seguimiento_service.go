@@ -1131,7 +1131,6 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 				// Actualizar el plan_id de los seguimientos sin llenar
 				for _, seguimiento := range seguimientosVacios {
 					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
-					arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
 				}
 			} else {
 				for _, seguimiento := range seguimientosLlenos {
