@@ -309,7 +309,7 @@ func VerificarSeguimiento(idSeguimiento string) (interface{}, error) {
 	return seguimiento, nil
 }
 
-func consultarActividad(seguimientos map[string]interface{}, indice string, trimestre string) map[string]interface{} {
+func consultarActividad(seguimiento map[string]interface{}, indice string, trimestre string) map[string]interface{} {
 	var data map[string]interface{}
 	var respuestaEstado map[string]interface{}
 	var respuestaDetalle map[string]interface{}
@@ -322,27 +322,27 @@ func consultarActividad(seguimientos map[string]interface{}, indice string, trim
 	detalle := map[string]interface{}{}
 	identificador := ""
 	dato := make(map[string]interface{})
-	datoStr := seguimientos["dato"].(string)
+	datoStr := seguimiento["dato"].(string)
 	json.Unmarshal([]byte(datoStr), &dato)
 
 	if dato[indice] != nil {
-		identificadores, segregado := dato[indice].(map[string]interface{})["id"]
+		id, existeId := dato[indice].(map[string]interface{})["id"]
 
-		if segregado && identificadores != "" {
-			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+identificadores.(string), &respuestaDetalle); err == nil {
+		if existeId && id != "" {
+			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+id.(string), &respuestaDetalle); err == nil {
 				if respuestaDetalle["Data"] != "null" {
 					request.LimpiezaRespuestaRefactor(respuestaDetalle, &detalle)
 					detalle = helpers.ConvertirStringJson(detalle)
 					identificador = detalle["_id"].(string)
 
 					if len(detalle["informacion"].(map[string]interface{})) == 0 {
-						informacion, _ = consultarInformacionPlan(seguimientos, indice)
+						informacion, _ = consultarInformacionPlan(seguimiento, indice)
 					} else {
 						informacion = detalle["informacion"].(map[string]interface{})
 					}
 
 					if len(detalle["cuantitativo"].(map[string]interface{})) == 0 {
-						cuantitativo, _ = consultarCuantitativoPlan(seguimientos, indice, trimestre)
+						cuantitativo, _ = consultarCuantitativoPlan(seguimiento, indice, trimestre)
 					} else {
 						cuantitativo = detalle["cuantitativo"].(map[string]interface{})
 					}
@@ -371,13 +371,13 @@ func consultarActividad(seguimientos map[string]interface{}, indice string, trim
 			}
 		} else {
 			if dato[indice].(map[string]interface{})["informacion"] == nil {
-				informacion, _ = consultarInformacionPlan(seguimientos, indice)
+				informacion, _ = consultarInformacionPlan(seguimiento, indice)
 			} else {
 				informacion = dato[indice].(map[string]interface{})["informacion"].(map[string]interface{})
 			}
 
 			if dato[indice].(map[string]interface{})["cuantitativo"] == nil {
-				cuantitativo, _ = consultarCuantitativoPlan(seguimientos, indice, trimestre)
+				cuantitativo, _ = consultarCuantitativoPlan(seguimiento, indice, trimestre)
 			} else {
 				cuantitativo = dato[indice].(map[string]interface{})["cuantitativo"].(map[string]interface{})
 			}
@@ -410,8 +410,8 @@ func consultarActividad(seguimientos map[string]interface{}, indice string, trim
 				"id":     respuestaEstado["Data"].([]interface{})[0].(map[string]interface{})["_id"],
 			}
 		}
-		informacion, _ = consultarInformacionPlan(seguimientos, indice)
-		cuantitativo, _ = consultarCuantitativoPlan(seguimientos, indice, trimestre)
+		informacion, _ = consultarInformacionPlan(seguimiento, indice)
+		cuantitativo, _ = consultarCuantitativoPlan(seguimiento, indice, trimestre)
 		cualitativo = map[string]interface{}{"reporte": "", "productos": "", "dificultades": ""}
 	}
 
@@ -538,7 +538,7 @@ func consultarInformacionPlan(seguimientos map[string]interface{}, indice string
 	return informacion, nil
 }
 
-func consultarCuantitativoPlan(seguimientos map[string]interface{}, indice string, trimestre string) (map[string]interface{}, error) {
+func consultarCuantitativoPlan(seguimiento map[string]interface{}, indice string, trimestre string) (map[string]interface{}, error) {
 	var respuestaInformacion map[string]interface{}
 	var respuestaDetalle map[string]interface{}
 	var hijos []interface{}
@@ -547,7 +547,7 @@ func consultarCuantitativoPlan(seguimientos map[string]interface{}, indice strin
 	respuestas := make([]map[string]interface{}, 0)
 	response := map[string]interface{}{}
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+seguimientos["plan_id"].(string), &respuestaInformacion); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/subgrupo/hijos/"+seguimiento["plan_id"].(string), &respuestaInformacion); err == nil {
 		request.LimpiezaRespuestaRefactor(respuestaInformacion, &subgrupos)
 
 		for _, subgrupo := range subgrupos {
@@ -632,8 +632,7 @@ func consultarCuantitativoPlan(seguimientos map[string]interface{}, indice strin
 							indicadores = append(indicadores, informacion)
 							respuestas = append(respuestas, respuesta)
 						}
-
-						respuestasAnteriores, errorRespuestaAnterior := consultarRespuestaAnterior(seguimientos, len(indicadores)-1, respuestas, indice, trimestre)
+						respuestasAnteriores, errorRespuestaAnterior := consultarRespuestaAnterior(seguimiento, len(indicadores)-1, respuestas, indice, trimestre)
 						if errorRespuestaAnterior != nil {
 							logs.Error("Error --> ", errorRespuestaAnterior)
 							return nil, errors.New(errorRespuestaAnterior.Error())
@@ -756,148 +755,270 @@ func seguimientoAvalable(seguimientos map[string]interface{}) (bool, bool, map[s
 
 func consultarRespuestaAnterior(dataSeg map[string]interface{}, indice int, respuestas []map[string]interface{}, indiceActividad string, trimestre string) ([]map[string]interface{}, error) {
 	plan_identificador := dataSeg["plan_id"].(string)
+	var respuestaPlan map[string]interface{}
+	var respuestaVersiones map[string]interface{}
 	var respuestaSeguimiento map[string]interface{}
 	var respuestaPeriodoSeguimiento map[string]interface{}
 	var respuestaPeriodo map[string]interface{}
 	var periodoSeguimiento map[string]interface{}
-	var seguimientos []map[string]interface{}
+	var plan map[string]interface{}
+	var versiones []map[string]interface{}
+	var seguimientosPlan []map[string]interface{}
+	var seguimientoAnterior map[string]interface{}
 	var periodo []map[string]interface{}
 	var respuestaSeguimientoDetalle map[string]interface{}
 	detalle := make(map[string]interface{})
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+plan_identificador, &respuestaSeguimiento); err == nil {
-		request.LimpiezaRespuestaRefactor(respuestaSeguimiento, &seguimientos)
+	acumuladoNumerador := 0.0
+	acumuladoDenominador := 0.0
+	indicadorAcumulado := 0.0
+	avanceAcumulado := 0.0
+	brechaExistente := 0.0
+	divisionCero := false
 
-		acumuladoNumerador := 0.0
-		acumuladoDenominador := 0.0
-		indicadorAcumulado := 0.0
-		avanceAcumulado := 0.0
-		brechaExistente := 0.0
-		divisionCero := false
+	tri, _ := strconv.Atoi(string(trimestre[1]))
 
-		for _, seguimiento := range seguimientos {
-			if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento/"+seguimiento["periodo_seguimiento_id"].(string), &respuestaPeriodoSeguimiento); err == nil {
-				request.LimpiezaRespuestaRefactor(respuestaPeriodoSeguimiento, &periodoSeguimiento)
+	// En caso de una reformulación:
+	// Realizar comparación con actividades de planes padre para saber si empezar de cero con el trimestre respectivo
+	// 1. Averiguar si es una reformulación
+	// 2. Obtener planes padre que hayan sido avalados
+	// 3. Obtener las actividades de esos planes
+	// 4. Comparar las actividades con el seguimiento anterior para saber si se modifico una actividad o no, para con esto empezar de cero o no
+	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan_identificador, &respuestaPlan); err == nil {
+		request.LimpiezaRespuestaRefactor(respuestaPlan, &plan)
+		// Obtener las diferentes versiones de un plan
+		if err := request.GetJson("http://"+beego.AppConfig.String("FormulacionService")+"/formulacion/plan/versiones/"+plan["dependencia_id"].(string)+"/"+plan["vigencia"].(string)+"/"+url.QueryEscape(plan["nombre"].(string)), &respuestaVersiones); err == nil {
+			request.LimpiezaRespuestaRefactor(respuestaVersiones, &versiones)
+			for _, version := range versiones {
+				// Obtener los seguimientos asociados a las versiones de los planes anteriores y del plan actual
+				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+version["_id"].(string), &respuestaSeguimiento); err == nil {
+					request.LimpiezaRespuestaRefactor(respuestaSeguimiento, &seguimientosPlan)
+					for _, seguimiento := range seguimientosPlan {
+						if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento/"+seguimiento["periodo_seguimiento_id"].(string), &respuestaPeriodoSeguimiento); err == nil {
+							request.LimpiezaRespuestaRefactor(respuestaPeriodoSeguimiento, &periodoSeguimiento)
 
-				if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro_periodo?query=Id:"+periodoSeguimiento["periodo_id"].(string), &respuestaPeriodo); err == nil {
-					request.LimpiezaRespuestaRefactor(respuestaPeriodo, &periodo)
-					tri, _ := strconv.Atoi(string(trimestre[1]))
-					segTrimestre, _ := strconv.Atoi(string(periodo[0]["ParametroId"].(map[string]interface{})["CodigoAbreviacion"].(string)[1]))
+							if err := request.GetJson("http://"+beego.AppConfig.String("ParametrosService")+"/parametro_periodo?query=Id:"+periodoSeguimiento["periodo_id"].(string), &respuestaPeriodo); err == nil {
+								request.LimpiezaRespuestaRefactor(respuestaPeriodo, &periodo)
+								segTrimestre, _ := strconv.Atoi(string(periodo[0]["ParametroId"].(map[string]interface{})["CodigoAbreviacion"].(string)[1]))
+								if (tri - 1) == segTrimestre {
+									// Compara si el anterior seguimiento tiene la misma estructura que el plan actual
+									if seguimientoAnterior != nil && (seguimiento["plan_id"].(string) == seguimientoAnterior["plan_id"].(string) || esLaMismaEstructuraDeIndicadores(seguimiento["plan_id"].(string), seguimientoAnterior["_id"].(string), indiceActividad)) {
 
-					if (tri - 1) == segTrimestre {
-						if seguimiento["dato"] != "{}" {
-							dato := make(map[string]interface{})
-							datoStr := seguimiento["dato"].(string)
-							json.Unmarshal([]byte(datoStr), &dato)
+										if seguimiento["dato"] != "{}" {
+											dato := make(map[string]interface{})
+											datoStr := seguimiento["dato"].(string)
+											json.Unmarshal([]byte(datoStr), &dato)
 
-							if dato[indiceActividad] == nil {
-								respuestas[indice]["indicadorAcumulado"] = indicadorAcumulado
-								respuestas[indice]["avanceAcumulado"] = avanceAcumulado
-								respuestas[indice]["brechaExistente"] = brechaExistente
-								respuestas[indice]["divisionCero"] = divisionCero
-								continue
-							}
+											if dato[indiceActividad] == nil {
+												respuestas[indice]["indicadorAcumulado"] = indicadorAcumulado
+												respuestas[indice]["avanceAcumulado"] = avanceAcumulado
+												respuestas[indice]["brechaExistente"] = brechaExistente
+												respuestas[indice]["divisionCero"] = divisionCero
+												continue
+											}
 
-							identificador, segregado := dato[indiceActividad].(map[string]interface{})["id"]
-							if segregado && identificador != "" {
-								if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
-									request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
-									detalle = helpers.ConvertirStringJson(detalle)
+											identificador, segregado := dato[indiceActividad].(map[string]interface{})["id"]
+											if segregado && identificador != "" {
+												if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento-detalle/"+dato[indiceActividad].(map[string]interface{})["id"].(string), &respuestaSeguimientoDetalle); err == nil {
+													request.LimpiezaRespuestaRefactor(respuestaSeguimientoDetalle, &detalle)
+													detalle = helpers.ConvertirStringJson(detalle)
 
-									if fmt.Sprintf("%v", detalle["cuantitativo"]) == "map[]" {
+													if fmt.Sprintf("%v", detalle["cuantitativo"]) == "map[]" {
+														respuestas[indice]["indicadorAcumulado"] = indicadorAcumulado
+														respuestas[indice]["avanceAcumulado"] = avanceAcumulado
+														respuestas[indice]["brechaExistente"] = brechaExistente
+														respuestas[indice]["divisionCero"] = divisionCero
+														continue
+													}
+
+													if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["indicadorAcumulado"] != nil {
+														indicadorAcumulado += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["indicadorAcumulado"].(float64)
+													}
+
+													if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["avanceAcumulado"] != nil {
+														avanceAcumulado += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["avanceAcumulado"].(float64)
+													}
+
+													if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["brechaExistente"] != nil {
+														brechaExistente += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["brechaExistente"].(float64)
+													}
+
+													if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["divisionCero"] != nil {
+														divisionCero = detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["divisionCero"].(bool)
+													} else {
+														divisionCero = false
+													}
+
+													if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoDenominador"] != nil {
+														acumuladoDenominador += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoDenominador"].(float64)
+													}
+
+													if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoNumerador"] != nil {
+														acumuladoNumerador += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoNumerador"].(float64)
+													}
+												} else {
+													logs.Error("Error --> ", err)
+													return nil, errors.New(err.Error())
+												}
+											} else {
+												seguimientoActividad := dato[indiceActividad].(map[string]interface{})
+												if seguimientoActividad["cuantitativo"] == nil {
+													respuestas[indice]["indicadorAcumulado"] = indicadorAcumulado
+													respuestas[indice]["avanceAcumulado"] = avanceAcumulado
+													respuestas[indice]["brechaExistente"] = brechaExistente
+													respuestas[indice]["divisionCero"] = divisionCero
+													continue
+												}
+
+												if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["indicadorAcumulado"] != nil {
+													indicadorAcumulado += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["indicadorAcumulado"].(float64)
+												}
+
+												if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["avanceAcumulado"] != nil {
+													avanceAcumulado += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["avanceAcumulado"].(float64)
+												}
+
+												if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["brechaExistente"] != nil {
+													brechaExistente += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["brechaExistente"].(float64)
+												}
+
+												if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["divisionCero"] != nil {
+													divisionCero = seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["divisionCero"].(bool)
+												} else {
+													divisionCero = false
+												}
+
+												if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoDenominador"] != nil {
+													acumuladoDenominador += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoDenominador"].(float64)
+												}
+
+												if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoNumerador"] != nil {
+													acumuladoNumerador += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoNumerador"].(float64)
+												}
+											}
+										}
+
 										respuestas[indice]["indicadorAcumulado"] = indicadorAcumulado
 										respuestas[indice]["avanceAcumulado"] = avanceAcumulado
 										respuestas[indice]["brechaExistente"] = brechaExistente
+										respuestas[indice]["acumuladoNumerador"] = acumuladoNumerador
+										respuestas[indice]["acumuladoDenominador"] = acumuladoDenominador
 										respuestas[indice]["divisionCero"] = divisionCero
-										continue
+										break
 									}
-
-									if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["indicadorAcumulado"] != nil {
-										indicadorAcumulado += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["indicadorAcumulado"].(float64)
-									}
-
-									if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["avanceAcumulado"] != nil {
-										avanceAcumulado += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["avanceAcumulado"].(float64)
-									}
-
-									if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["brechaExistente"] != nil {
-										brechaExistente += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["brechaExistente"].(float64)
-									}
-
-									if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["divisionCero"] != nil {
-										divisionCero = detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["divisionCero"].(bool)
-									} else {
-										divisionCero = false
-									}
-
-									if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoDenominador"] != nil {
-										acumuladoDenominador += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoDenominador"].(float64)
-									}
-
-									if detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoNumerador"] != nil {
-										acumuladoNumerador += detalle["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoNumerador"].(float64)
-									}
-								} else {
-									logs.Error("Error --> ", err)
-									return nil, errors.New(err.Error())
 								}
 							} else {
-								seguimientoActividad := dato[indiceActividad].(map[string]interface{})
-								if seguimientoActividad["cuantitativo"] == nil {
-									respuestas[indice]["indicadorAcumulado"] = indicadorAcumulado
-									respuestas[indice]["avanceAcumulado"] = avanceAcumulado
-									respuestas[indice]["brechaExistente"] = brechaExistente
-									respuestas[indice]["divisionCero"] = divisionCero
-									continue
-								}
-
-								if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["indicadorAcumulado"] != nil {
-									indicadorAcumulado += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["indicadorAcumulado"].(float64)
-								}
-
-								if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["avanceAcumulado"] != nil {
-									avanceAcumulado += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["avanceAcumulado"].(float64)
-								}
-
-								if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["brechaExistente"] != nil {
-									brechaExistente += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["brechaExistente"].(float64)
-								}
-
-								if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["divisionCero"] != nil {
-									divisionCero = seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["divisionCero"].(bool)
-								} else {
-									divisionCero = false
-								}
-
-								if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoDenominador"] != nil {
-									acumuladoDenominador += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoDenominador"].(float64)
-								}
-
-								if seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoNumerador"] != nil {
-									acumuladoNumerador += seguimientoActividad["cuantitativo"].(map[string]interface{})["resultados"].([]interface{})[indice].(map[string]interface{})["acumuladoNumerador"].(float64)
-								}
+								logs.Error("Error --> ", err)
+								return nil, errors.New(err.Error())
 							}
+						} else {
+							logs.Error("Error --> ", err)
+							return nil, errors.New(err.Error())
 						}
-
-						respuestas[indice]["indicadorAcumulado"] = indicadorAcumulado
-						respuestas[indice]["avanceAcumulado"] = avanceAcumulado
-						respuestas[indice]["brechaExistente"] = brechaExistente
-						respuestas[indice]["acumuladoNumerador"] = acumuladoNumerador
-						respuestas[indice]["acumuladoDenominador"] = acumuladoDenominador
-						respuestas[indice]["divisionCero"] = divisionCero
-						break
+						seguimientoAnterior = seguimiento
 					}
-				} else {
-					logs.Error("Error --> ", err)
-					return nil, errors.New(err.Error())
 				}
-			} else {
-				logs.Error("Error --> ", err)
-				return nil, errors.New(err.Error())
 			}
 		}
 	}
 	return respuestas, nil
+}
+
+func esLaMismaEstructuraDeIndicadores(planPadreId string, planHijoId string, indiceActividad string) bool {
+	var resInfoPlan map[string]interface{}
+	var infoPlan []interface{}
+	elementosAComparar := make(map[string]interface{})
+	// Se recolecta la información del plan "padre" con el que se va a comparar
+	if err := request.GetJson("http://"+beego.AppConfig.String("FormulacionService")+"/formulacion/plan/"+planPadreId+"/"+indiceActividad, &resInfoPlan); err == nil {
+		request.LimpiezaRespuestaRefactor(resInfoPlan, &infoPlan)
+		valoresPadre := infoPlan[1].([]interface{})[0]
+
+		for _, campo := range infoPlan[0].([]interface{}) {
+			idCampo := campo.(map[string]interface{})["id"].(string)
+			nombreCampo := campo.(map[string]interface{})["nombre"].(string)
+
+			if strings.Contains(strings.ToLower(nombreCampo), "producto") {
+				elementosAComparar["producto"] = valoresPadre.(map[string]interface{})[idCampo].(string)
+			} else if strings.Contains(strings.ToLower(nombreCampo), "indicadores") {
+				indicadores := campo.(map[string]interface{})["sub"].([]interface{})
+				valoresIndicadores := make([]map[string]interface{}, 0)
+				for _, ind := range indicadores {
+					valIndicador := make(map[string]interface{})
+					subIndicadores := ind.(map[string]interface{})["sub"].([]interface{})
+					for _, subIndi := range subIndicadores {
+						idSub := subIndi.(map[string]interface{})["id"].(string)
+						nombreSub := subIndi.(map[string]interface{})["nombre"].(string)
+
+						switch {
+						case strings.Contains(strings.ToLower(nombreSub), "nombre"):
+							valIndicador["nombre"] = valoresPadre.(map[string]interface{})[idSub].(string)
+						case strings.Contains(strings.ToLower(nombreSub), "fórmula"):
+							valIndicador["fórmula"] = valoresPadre.(map[string]interface{})[idSub].(string)
+						case strings.Contains(strings.ToLower(nombreSub), "meta"):
+							valIndicador["meta"] = valoresPadre.(map[string]interface{})[idSub].(string)
+						case strings.Contains(strings.ToLower(nombreSub), "unidad de medida"):
+							valIndicador["unidad_de_medida"] = valoresPadre.(map[string]interface{})[idSub].(string)
+						case strings.Contains(strings.ToLower(nombreSub), "tendencia"):
+							valIndicador["tendencia"] = valoresPadre.(map[string]interface{})[idSub].(string)
+						case strings.Contains(strings.ToLower(nombreSub), "criterio"):
+							valIndicador["criterio"] = valoresPadre.(map[string]interface{})[idSub].(string)
+						}
+
+					}
+					valoresIndicadores = append(valoresIndicadores, valIndicador)
+				}
+				elementosAComparar["indicadores"] = valoresIndicadores
+			}
+		}
+	} else {
+		logs.Error("Error --> ", err)
+		return false
+	}
+
+	// Se comparan los valores obtenidos con el plan "actual"
+	if err := request.GetJson("http://"+beego.AppConfig.String("FormulacionService")+"/formulacion/plan/"+planHijoId+"/"+indiceActividad, &resInfoPlan); err == nil {
+		request.LimpiezaRespuestaRefactor(resInfoPlan, &infoPlan)
+		valoresHijo := infoPlan[1].([]interface{})[0]
+
+		for _, campo := range infoPlan[0].([]interface{}) {
+			idCampo := campo.(map[string]interface{})["id"].(string)
+			nombreCampo := campo.(map[string]interface{})["nombre"].(string)
+
+			if strings.Contains(strings.ToLower(nombreCampo), "producto") && elementosAComparar["producto"] != "" && elementosAComparar["producto"] != valoresHijo.(map[string]interface{})[idCampo].(string) {
+				return false
+			} else if strings.Contains(strings.ToLower(nombreCampo), "indicadores") {
+				for posInd, ind := range campo.(map[string]interface{})["sub"].([]interface{}) {
+					indicadorComparativo := elementosAComparar["indicadores"].([]map[string]interface{})[posInd]
+
+					subIndicadores := ind.(map[string]interface{})["sub"].([]interface{})
+					for _, subIndi := range subIndicadores {
+						idSub := subIndi.(map[string]interface{})["id"].(string)
+						nombreSub := subIndi.(map[string]interface{})["nombre"].(string)
+
+						switch {
+						case strings.Contains(strings.ToLower(nombreSub), "nombre") && len(indicadorComparativo["nombre"].(string)) != 0 && indicadorComparativo["nombre"] != valoresHijo.(map[string]interface{})[idSub].(string):
+							return false
+						case strings.Contains(strings.ToLower(nombreSub), "fórmula") && len(indicadorComparativo["nombre"].(string)) != 0 && indicadorComparativo["fórmula"] != valoresHijo.(map[string]interface{})[idSub].(string):
+							return false
+						case strings.Contains(strings.ToLower(nombreSub), "meta") && len(indicadorComparativo["meta"].(string)) != 0 && indicadorComparativo["meta"] != valoresHijo.(map[string]interface{})[idSub].(string):
+							return false
+						case strings.Contains(strings.ToLower(nombreSub), "unidad de medida") && len(indicadorComparativo["unidad_de_medida"].(string)) != 0 && indicadorComparativo["unidad_de_medida"] != valoresHijo.(map[string]interface{})[idSub].(string):
+							return false
+						case strings.Contains(strings.ToLower(nombreSub), "tendencia") && len(indicadorComparativo["tendencia"].(string)) != 0 && indicadorComparativo["tendencia"] != valoresHijo.(map[string]interface{})[idSub].(string):
+							return false
+						case strings.Contains(strings.ToLower(nombreSub), "criterio") && len(indicadorComparativo["criterio"].(string)) != 0 && indicadorComparativo["criterio"] != valoresHijo.(map[string]interface{})[idSub].(string):
+							return false
+						}
+
+					}
+				}
+			}
+		}
+	} else {
+		logs.Error("Error --> ", err)
+		return false
+	}
+	return true
 }
 
 func EstadoTrimestres(planId string) (interface{}, error) {
