@@ -19,13 +19,13 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func ObtenerSeguimientos(plan_id string) (interface{}, error) {
+func ObtenerSeguimientos(plan_id string) ([]map[string]interface{}, error) {
 	var respuestaPlan map[string]interface{}
 	var plan map[string]interface{}
 	var resVersiones map[string]interface{}
 	var versionesPlan []map[string]interface{}
 
-	var periodos []map[string]interface{}
+	var seguimientos []map[string]interface{}
 
 	// Obtener toda la información del plan
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan_id, &respuestaPlan); err != nil {
@@ -35,21 +35,21 @@ func ObtenerSeguimientos(plan_id string) (interface{}, error) {
 
 	// Obtener diferentes versiones asociadas al plan
 	if err := request.GetJson("http://"+beego.AppConfig.String("FormulacionService")+"/formulacion/plan/versiones/"+plan["dependencia_id"].(string)+"/"+plan["vigencia"].(string)+"/"+url.QueryEscape(plan["nombre"].(string)), &resVersiones); err != nil {
-		return nil, errors.New("error del servicio AvalarPlan: Error al consultar las versiones de el plan")
+		return nil, errors.New("error del servicio ObtenerSeguimientos: Error al consultar las versiones de el plan")
 	}
 	request.LimpiezaRespuestaRefactor(resVersiones, &versionesPlan)
 
 	for _, version := range versionesPlan {
 		var resSeguimiento map[string]interface{}
-		var seguimientos []map[string]interface{}
+		var seguimientosPlan []map[string]interface{}
 		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+`/seguimiento?query=activo:true,tipo_seguimiento_id:61f236f525e40c582a0840d0,plan_id:`+version["_id"].(string), &resSeguimiento); err != nil {
 			return nil, errors.New("error del servicio ObtenerSeguimientos: Error al consultar la reformulación del plan")
 		}
-		request.LimpiezaRespuestaRefactor(resSeguimiento, &seguimientos)
-		periodos = append(periodos, seguimientos...)
+		request.LimpiezaRespuestaRefactor(resSeguimiento, &seguimientosPlan)
+		seguimientos = append(seguimientos, seguimientosPlan...)
 	}
 
-	return periodos, nil
+	return seguimientos, nil
 
 }
 
@@ -150,8 +150,13 @@ func ConsultarSeguimiento(planIdentificador string, indiceActividad string, trim
 	id_actividad := helpers.EncodeBase62(id_actividad_decoded)
 
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+planIdentificador+",periodo_seguimiento_id:"+trimestreIdentificador, &respuesta); err == nil {
-		aux := make([]map[string]interface{}, 1)
+		var aux []map[string]interface{}
 		request.LimpiezaRespuestaRefactor(respuesta, &aux)
+		if len(aux) == 0 {
+			err := errors.New("consultarSeguimiento: no se encontró un seguimiento que cumpla con el plan_id y periodo_seguimiento_id especificado")
+			logs.Error("Error --> ", err)
+			return nil, err
+		}
 		seguimiento = aux[0]
 
 		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/periodo-seguimiento/"+seguimiento["periodo_seguimiento_id"].(string), &respuestaPeriodoSeguimiento); err == nil {
