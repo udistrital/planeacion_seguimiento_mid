@@ -19,6 +19,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	CodigoAval string = "A_SP"
+)
+
 func ObtenerSeguimientos(plan_id string) ([]map[string]interface{}, error) {
 	var respuestaPlan map[string]interface{}
 	var plan map[string]interface{}
@@ -704,7 +708,17 @@ func seguimientoAvalable(seguimientos map[string]interface{}) (bool, bool, map[s
 
 	return avaladas, observaciones, nil, nil
 }
-
+func getIdEstadoAval() (string, error) {
+	var resEstado map[string]interface{}
+	var estado []map[string]interface{}
+	url := "http://" + beego.AppConfig.String("PlanesService") + "/estado-plan?query=activo:true,codigo_abreviacion:" + CodigoAval
+	err := request.GetJson(url, &resEstado)
+	if err != nil {
+		return "", err
+	}
+	request.LimpiezaRespuestaRefactor(resEstado, &estado)
+	return estado[0]["_id"].(string), nil
+}
 func consultarRespuestaAnterior(dataSeg map[string]interface{}, indice int, respuestas []map[string]interface{}, indiceActividad string, trimestre string) ([]map[string]interface{}, error) {
 	plan_identificador := dataSeg["plan_id"].(string)
 	var respuestaPlan map[string]interface{}
@@ -729,19 +743,24 @@ func consultarRespuestaAnterior(dataSeg map[string]interface{}, indice int, resp
 	divisionCero := false
 
 	tri, _ := strconv.Atoi(string(trimestre[1]))
-
+	idEstadoAval, errId := getIdEstadoAval()
+	if errId != nil {
+		return nil, errors.New("error al procesar la peticion " + errId.Error())
+	}
 	// En caso de una reformulación:
 	// Realizar comparación con actividades de planes padre para saber si empezar de cero con el trimestre respectivo
-	// 1. Averiguar si es una reformulación
-	// 2. Obtener planes padre que hayan sido avalados
-	// 3. Obtener las actividades de esos planes
-	// 4. Comparar las actividades con el seguimiento anterior para saber si se modifico una actividad o no, para con esto empezar de cero o no
 	if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/plan/"+plan_identificador, &respuestaPlan); err == nil {
 		request.LimpiezaRespuestaRefactor(respuestaPlan, &plan)
 		// Obtener las diferentes versiones de un plan
 		if err := request.GetJson("http://"+beego.AppConfig.String("FormulacionService")+"/formulacion/plan/versiones/"+plan["dependencia_id"].(string)+"/"+plan["vigencia"].(string)+"/"+url.QueryEscape(plan["nombre"].(string)), &respuestaVersiones); err == nil {
 			request.LimpiezaRespuestaRefactor(respuestaVersiones, &versiones)
-			for _, version := range versiones {
+			var planesAvalados []map[string]interface{} = make([]map[string]interface{}, 0)
+			for _, pl := range versiones {
+				if pl["estado_plan_id"] == idEstadoAval {
+					planesAvalados = append(planesAvalados, pl)
+				}
+			}
+			for _, version := range planesAvalados {
 				// Obtener los seguimientos asociados a las versiones de los planes anteriores y del plan actual
 				if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+version["_id"].(string), &respuestaSeguimiento); err == nil {
 					request.LimpiezaRespuestaRefactor(respuestaSeguimiento, &seguimientosPlan)
@@ -753,8 +772,8 @@ func consultarRespuestaAnterior(dataSeg map[string]interface{}, indice int, resp
 								request.LimpiezaRespuestaRefactor(respuestaPeriodo, &periodo)
 								segTrimestre, _ := strconv.Atoi(string(periodo[0]["ParametroId"].(map[string]interface{})["CodigoAbreviacion"].(string)[1]))
 								if (tri - 1) == segTrimestre {
-									// Compara si el anterior seguimiento tiene la misma estructura que el plan actual
-									if seguimientoAnterior != nil && (seguimiento["plan_id"].(string) == seguimientoAnterior["plan_id"].(string) || esLaMismaEstructuraDeIndicadores(seguimiento["plan_id"].(string), seguimientoAnterior["_id"].(string), indiceActividad)) {
+									// Si es el primer seguimiento, si tiene el mismo plan id que el seguimiento anterior o si tiene la misma estructura que el plan del seguimiento anterior
+									if seguimientoAnterior == nil || seguimiento["plan_id"].(string) == seguimientoAnterior["plan_id"].(string) || esLaMismaEstructuraDeIndicadores(seguimiento["plan_id"].(string), seguimientoAnterior["_id"].(string), indiceActividad) {
 
 										if seguimiento["dato"] != "{}" {
 											dato := make(map[string]interface{})
@@ -1139,16 +1158,14 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 	var resDependencia []map[string]interface{}
 	var resTrimestres map[string]interface{}
 	var respuestaPost map[string]interface{}
-	var planPadre map[string]interface{}
 	reporte := make(map[string]interface{})
 	nuevo := true
 
 	// Caso especial para el plan de acción, retomar avances de seguimiento de versiones anteriores
 	if tipo == "61f236f525e40c582a0840d0" && plan["padre_plan_id"] != nil {
-		var resSeguimientos map[string]interface{}
 		var seguimientos []map[string]interface{}
-		var seguimientosLlenos []map[string]interface{}
-		var seguimientosVacios []map[string]interface{}
+		var seguimientosAvalados []map[string]interface{}
+		var seguimientosSinAvalar []map[string]interface{}
 		nuevo = false
 
 		// Revisar si es una reformulación, en cuyo caso debe buscar el padre_plan_id asociado a la reformulación
@@ -1159,27 +1176,20 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 		}
 		request.LimpiezaRespuestaRefactor(resVersiones, &versionesPlan)
 
-		// Obtener el último plan que se encuentre formulado completamente(Que haya llegado al estado final) de aquí se tomaran los diferentes reportes y se notará si se esta trabajando o no en un plan de reformulación
-		for _, version := range versionesPlan {
-			if version["estado_plan_id"].(string) == id_estado_avalado && version["_id"].(string) != plan_id {
-				planPadre = version
-			}
-			esReformulacion = version["reformulacion"].(bool)
-		}
+		esReformulacion = versionesPlan[len(versionesPlan)-1]["reformulacion"].(bool)
 
-		if err := request.GetJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento?query=activo:true,plan_id:"+planPadre["_id"].(string), &resSeguimientos); err == nil {
-			request.LimpiezaRespuestaRefactor(resSeguimientos, &seguimientos)
+		if seguimientos, err = ObtenerSeguimientos(plan_id); err == nil {
 			if len(seguimientos) == 0 && plan["nueva_estructura"].(bool) {
 				nuevo = true
 			}
 			for _, seguimiento := range seguimientos {
-				if fmt.Sprintf("%v", seguimiento["dato"]) != "{}" && seguimiento["estado_seguimiento_id"] == id_estado_seguimiento_avalado {
-					seguimientosLlenos = append(seguimientosLlenos, seguimiento)
+				if seguimiento["estado_seguimiento_id"] == id_estado_seguimiento_avalado {
+					seguimientosAvalados = append(seguimientosAvalados, seguimiento)
 				} else {
 					seguimiento["plan_id"] = plan_id
 					seguimiento["dato"] = "{}"
 					seguimiento["estado_seguimiento_id"] = id_estado_seguimiento_habilitado
-					seguimientosVacios = append(seguimientosVacios, seguimiento)
+					seguimientosSinAvalar = append(seguimientosSinAvalar, seguimiento)
 				}
 			}
 		}
@@ -1202,11 +1212,11 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 
 			if esReformulacion {
 				// Actualizar el plan_id de los seguimientos sin llenar
-				for _, seguimiento := range seguimientosVacios {
+				for _, seguimiento := range seguimientosSinAvalar {
 					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
 				}
 			} else {
-				for _, seguimiento := range seguimientosLlenos {
+				for _, seguimiento := range seguimientosAvalados {
 
 					dato = map[string]interface{}{}
 					json.Unmarshal([]byte(seguimiento["dato"].(string)), &dato)
@@ -1252,7 +1262,7 @@ func AvalarPlan(plan_id string) (arrReportes []map[string]interface{}, errRes er
 					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento", "POST", &resCreacion, seguimiento)
 					arrReportes = append(arrReportes, resCreacion["Data"].(map[string]interface{}))
 				}
-				for _, seguimiento := range seguimientosVacios {
+				for _, seguimiento := range seguimientosSinAvalar {
 					// ? Inactivar el actual
 					seguimiento["activo"] = false
 					request.SendJson("http://"+beego.AppConfig.String("PlanesService")+"/seguimiento/"+seguimiento["_id"].(string), "PUT", &resActualizacion, seguimiento)
@@ -1428,9 +1438,7 @@ func RevisarSeguimientoJefeDependencia(seguimiento_id string) (map[string]interf
 	json.Unmarshal([]byte(datoStr), &dato)
 
 	avalado, observacion, mensaje := seguimientoVerificable(seguimiento)
-	fmt.Println(avalado)
-	fmt.Println(observacion)
-	fmt.Println(mensaje)
+
 	if avalado || observacion {
 		var codigo_abreviacion string
 
