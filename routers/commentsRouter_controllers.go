@@ -115,6 +115,24 @@ func init() {
             Filters: nil,
             Params: nil})
 
+    beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReformulacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReformulacionController"],
+        beego.ControllerComments{
+            Method: "AprobarReformulacion",
+            Router: "/aprobar/:reformulacion_id",
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReformulacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReformulacionController"],
+        beego.ControllerComments{
+            Method: "ValidacionReformulacion",
+            Router: "/validar/:plan_id",
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
     beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReportesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:ReportesController"],
         beego.ControllerComments{
             Method: "CrearReportes",
@@ -156,6 +174,15 @@ func init() {
             Method: "RevisarSeguimiento",
             Router: "/:id/revision",
             AllowHTTPMethods: []string{"put"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/planeacion_seguimiento_mid/controllers:SeguimientoController"],
+        beego.ControllerComments{
+            Method: "ObtenerSeguimientos",
+            Router: "/:planId",
+            AllowHTTPMethods: []string{"get"},
             MethodParams: param.Make(),
             Filters: nil,
             Params: nil})

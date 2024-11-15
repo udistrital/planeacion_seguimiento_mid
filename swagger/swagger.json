@@ -507,6 +507,62 @@
                 }
             }
         },
+        "/reformulacion/aprobar/{reformulacion_id}": {
+            "get": {
+                "tags": [
+                    "reformulacion"
+                ],
+                "description": "Aprobación de una reformulacion para un plan de acción",
+                "operationId": "ReformulacionController.AprobarReformulacion",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for reformulacion content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/reformulacion/validar/{plan_id}": {
+            "get": {
+                "tags": [
+                    "reformulacion"
+                ],
+                "description": "Validación de la habilidad para realizar una reformulacion para un plan de acción",
+                "operationId": "ReformulacionController.ValidacionReformulacion",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for reformulacion content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/{}"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    },
+                    "404": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/reportes/actividad/{index}": {
             "put": {
                 "tags": [
@@ -793,6 +849,35 @@
                     },
                     "404": {
                         "description": ":id is empty"
+                    }
+                }
+            }
+        },
+        "/seguimiento/{planId}": {
+            "get": {
+                "tags": [
+                    "seguimiento"
+                ],
+                "description": "put Seguimiento by id",
+                "operationId": "SeguimientoController.ObtenerSeguimientos",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "planId",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Seguimiento"
+                        }
+                    },
+                    "404": {
+                        "description": ""
                     }
                 }
             }
