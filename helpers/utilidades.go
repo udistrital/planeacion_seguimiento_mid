@@ -68,7 +68,7 @@ func GuardarDetalleSeguimiento(detalle map[string]interface{}, actualizar bool) 
 	detalle = planeacion.ConvertirJsonString(detalle)
 
 	beego.Info("Detalle: ", detalle)
-	
+
 	if !actualizar {
 		detalle["estado"] = detalle["estado"].(string)
 		if fmt.Sprintf("%v", detalle["activo"]) == "<nil>" {
